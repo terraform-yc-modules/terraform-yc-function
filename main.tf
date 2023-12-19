@@ -15,6 +15,27 @@ resource "yandex_function" "test-function" {
     environment_variable = "YCKEY_ENV_VAR"
   }
   content {
-    zip_filename = "function.zip"
+    zip_filename = "main.py"
   }
+}
+
+resource "yandex_function_trigger" "yc_trigger" {
+  name        = "yc-function-trigger"
+  description = "this is the yc cloud function trigger for tf-module"
+  timer {
+    cron_expression = "*/5 * ? * * *"
+  }
+  function {
+    id = "${yandex_function.test-function.id}"
+    service_account_id = var.default_service_account_id
+  }
+}
+
+resource "yandex_function_iam_binding" "function-iam" {
+  function_id = "${yandex_function.test-function.id}"
+  role        = "serverless.functions.invoker"
+
+  members = [
+    "system:allUsers",
+  ]
 }
