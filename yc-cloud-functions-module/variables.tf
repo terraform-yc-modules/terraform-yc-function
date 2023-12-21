@@ -19,10 +19,7 @@ variable "default_network_id" { //your network-id
 }
 
 variable "default_zone" { //your default zone that is defined in provider.tf file
-  default = "ru-central1-a"
+  default = "ru-central1-b"
 }
 
-variable "YC_VALUE" {
-  type        = string
-  description = "value for lockbox secret"
-}
+variable "YC_VALUE" {}
