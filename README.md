@@ -42,6 +42,7 @@ export TF_VAR_YC_SECRET_KEY=<secret-key>
 ```
 module.cloud_function_module_with_lockbox_secret 
 module.cloud_function_module_with_async_invocation_to_ymq
+module.cloud_function_module_with_mounted_bucket
 ```
 
 
