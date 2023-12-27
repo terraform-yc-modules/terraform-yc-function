@@ -5,7 +5,7 @@ resource "yandex_lockbox_secret" "secret" {
 resource "yandex_lockbox_secret_version" "version" {
   secret_id = yandex_lockbox_secret.secret.id
   entries {
-    key        = "yc-key"
+    key        = var.lockbox_secret_key
     text_value = var.YC_VALUE
   }
 }
