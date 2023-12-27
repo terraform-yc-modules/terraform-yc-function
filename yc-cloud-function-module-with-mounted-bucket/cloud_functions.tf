@@ -19,7 +19,6 @@ resource "yandex_function" "test_function_s3" {
     prefix = ""
     read_only = "true"
   }
-  # loggroup_id = "${yandex_logging_group.yc_log_group.id}"
 }
 
 resource "yandex_function_trigger" "yc_trigger_s3" {

@@ -18,7 +18,6 @@ resource "yandex_function" "test_function" {
   content {
     zip_filename = var.zip_filename
   }
-  # loggroup_id = "${yandex_logging_group.yc_log_group.id}"
 }
 
 resource "yandex_function_trigger" "yc_trigger" {

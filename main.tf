@@ -50,7 +50,7 @@ module "cloud_function_module_with_mounted_bucket" {
   memory = "128"
   execution_timeout = "10"
 
-  cron_expression = "*/5 * ? * * *"
+  cron_expression = "*/7 * ? * * *"
   
   func_iam_binding = "admin"
 }
