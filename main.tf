@@ -1,56 +1,115 @@
-module "cloud_function_module_with_lockbox_secret" {
-  source       = "./yc-cloud-function-module-with-lockbox-secret"
-  YC_VALUE     = var.YC_VALUE
-  default_zone = "ru-central1-b"
+data "yandex_client_config" "client" {}
 
-  runtime = "bash"
-  entrypoint = "handler.sh"
-  memory = "128"
-  execution_timeout = "10"
-  
-  cron_expression = "*/5 * ? * * *"
+locals {
+  folder_id = var.folder_id == null ? data.yandex_client_config.client.folder_id : var.folder_id
+}
 
-  lockbox_secret_key = "yc-key"
+resource "time_sleep" "wait_for_iam" {
+  create_duration = "5s"
+  depends_on = [
+    yandex_logging_group.yc_log_group,
+    yandex_function.yc_function,
+    yandex_function_trigger.yc_trigger_ymq,
+    yandex_function_iam_binding.function_iam_ymq, 
+    yandex_message_queue.yc_queue,
+    yandex_message_queue.yc_dead_letter_queue
+  ]
+}
 
-  zip_filename = "handler.zip"
+resource "yandex_logging_group" "yc_log_group" {
+  name      = "yc-logging-group-${random_string.unique_id.result}"
+  description = "this is the yc logging group for tf-module"
+}
 
-  func_iam_binding = "serverless.functions.invoker"
+resource "yandex_message_queue" "yc_queue" {
+  name                        = "yc-queue-${random_string.unique_id.result}"
+  visibility_timeout_seconds  = var.visibility_timeout_seconds
+  receive_wait_time_seconds   = var.receive_wait_time_seconds
+  message_retention_seconds   = var.message_retention_seconds
+  redrive_policy              = jsonencode({
+    deadLetterTargetArn = yandex_message_queue.yc_dead_letter_queue.arn
+    maxReceiveCount     = var.maxReceiveCount
+  })
+  access_key = var.YC_ACCESS_KEY
+  secret_key = var.YC_SECRET_KEY
+}
+
+resource "yandex_message_queue" "yc_dead_letter_queue" {
+  name                        = "yc-dead-letter-queue-${random_string.unique_id.result}"
+  access_key = var.YC_ACCESS_KEY
+  secret_key = var.YC_SECRET_KEY
 }
 
 
-module "cloud_function_module_with_async_invocation_to_ymq" {
-  source       = "./yc-cloud-function-module-async-invocation-to-ymq"
-  default_zone = "ru-central1-b"
-  YC_ACCESS_KEY = var.YC_ACCESS_KEY
-  YC_SECRET_KEY = var.YC_SECRET_KEY
-  retries_count = 3
-  visibility_timeout_seconds = 600
-  receive_wait_time_seconds = 20
-  message_retention_seconds = 1209600
-  maxReceiveCount = 3
-
-  runtime = "bash"
-  entrypoint = "handler.sh"
-  memory = "128"
-  execution_timeout = "10"
-
-  cron_expression = "*/10 * ? * * *"
-  
-  func_iam_binding = "admin"
-  iam_sa_binding = "admin"
+resource "yandex_lockbox_secret" "yc_secret" {
+  name = "yc-secret-${random_string.unique_id.result}"
 }
 
+resource "yandex_lockbox_secret_version" "yc_version" {
+  secret_id = yandex_lockbox_secret.yc_secret.id
+  entries {
+    key        = var.lockbox_secret_key
+    text_value = var.YC_VALUE
+  }
+}
+resource "yandex_function" "yc_function" {
+  name               = "yc-function-example-ymq-${random_string.unique_id.result}"
+  description        = "this is the yc cloud function for tf-module with ymq"
+  user_hash          = "yc-defined-string-for-tf-module" # User-defined string for current function version. User must change this string any times when function changed. Function will be updated when hash is changed.
+  runtime            = var.runtime
+  entrypoint         = var.entrypoint
+  memory             = var.memory
+  execution_timeout  = var.execution_timeout
+  service_account_id = var.default_function_service_account_id
+  tags               = ["yc_tag"]
 
-module "cloud_function_module_with_mounted_bucket" {
-  source       = "./yc-cloud-function-module-with-mounted-bucket"
-  default_zone = "ru-central1-b"
+  secrets {
+    id = "${yandex_lockbox_secret.yc_secret.id}"
+    version_id = "${yandex_lockbox_secret_version.yc_version.id}"
+    key = var.lockbox_secret_key
+    environment_variable = "ENV_VARIABLE"
+  }
 
-  runtime = "bash"
-  entrypoint = "handler.sh"
-  memory = "128"
-  execution_timeout = "10"
+  content {
+    zip_filename = var.zip_filename
+  }
 
-  cron_expression = "*/7 * ? * * *"
-  
-  func_iam_binding = "admin"
+  async_invocation {
+    retries_count = var.retries_count
+    service_account_id = var.default_invoker_service_account_id
+
+    ymq_failure_target {
+      arn = yandex_message_queue.yc_dead_letter_queue.arn
+      service_account_id = var.default_ymq_writer_service_account_id
+    }
+    ymq_success_target {
+      arn = yandex_message_queue.yc_queue.arn
+      service_account_id = var.default_ymq_writer_service_account_id
+    }
+  }
+  log_options {
+    log_group_id = "${yandex_logging_group.yc_log_group.id}"
+    min_level = "DEBUG"
+  }
+}
+
+resource "yandex_function_trigger" "yc_trigger_ymq" {
+  name        = "yc-function-trigger-${random_string.unique_id.result}"
+  description = "this is the yc cloud function trigger for tf-module with ymq"
+  timer {
+    cron_expression = var.cron_expression
+  }
+  function {
+    id = "${yandex_function.yc_function.id}"
+    service_account_id = var.default_invoker_service_account_id
+  }
+}
+
+resource "yandex_function_iam_binding" "function_iam_ymq" {
+  function_id = "${yandex_function.yc_function.id}"
+  role        = var.func_iam_binding
+
+  members = [
+    "system:allUsers",
+  ]
 }
