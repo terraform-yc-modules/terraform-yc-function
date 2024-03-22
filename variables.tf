@@ -6,6 +6,22 @@ resource "random_string" "unique_id" {
   special = false
 }
 
+variable "cron_expression" {
+  description = "value"
+  default     = "*/15 * ? * * *"
+  type        = string
+}
+
+variable "user_hash" {
+  description = <<EOF
+    User-defined string for current function version.
+    User must change this string any times when function changed. 
+    Function will be updated when hash is changed."
+  EOF
+  default     = "yc-defined-string"
+  type        = string
+}
+
 variable "policy" {
   description = "List definition for Yandex Cloud Function scaling policies."
   type        = map(any)
@@ -30,8 +46,8 @@ variable "use_existing_sa" {
   default     = false
 }
 
-variable "create_logging_group" {
-  description = "Flag for enabling or disabling logging group creation."
+variable "create_logging_group_or_timer" {
+  description = "Flag for enabling logging group creation (true) or enabling timer with cron expression (false)."
   type        = bool
   default     = true
 }

@@ -23,7 +23,7 @@ resource "yandex_resourcemanager_folder_iam_binding" "invoker" {
 }
 
 resource "yandex_logging_group" "yc_log_group" {
-  count       = var.create_logging_group ? 1 : 0
+  count       = var.create_logging_group_or_timer ? 1 : 0
   name        = "yc-logging-group-${random_string.unique_id.result}"
   description = "this is the yc logging group for tf-module"
 }
@@ -31,7 +31,7 @@ resource "yandex_logging_group" "yc_log_group" {
 resource "yandex_function" "yc_function" {
   name               = "yc-function-example-ymq-${random_string.unique_id.result}"
   description        = "this is the yc cloud function for tf-module with ymq"
-  user_hash          = "yc-defined-string-for-tf-module" # User-defined string for current function version. User must change this string any times when function changed. Function will be updated when hash is changed.
+  user_hash          = var.user_hash
   runtime            = var.runtime
   entrypoint         = var.entrypoint
   memory             = var.memory
@@ -48,7 +48,7 @@ resource "yandex_function_trigger" "yc_trigger" {
   name        = "yc-function-trigger-${random_string.unique_id.result}"
   description = "this is the yc cloud function trigger with cloud logging"
   dynamic "logging" {
-    for_each = var.create_logging_group ? compact([try(yandex_logging_group.yc_log_group[0].id, null)]) : []
+    for_each = var.create_logging_group_or_timer ? compact([try(yandex_logging_group.yc_log_group[0].id, null)]) : []
     content {
       group_id       = logging.value
       resource_types = ["serverless.function"]
@@ -58,6 +58,17 @@ resource "yandex_function_trigger" "yc_trigger" {
       batch_size     = 1
     }
   }
+
+  dynamic "timer" {
+    for_each = var.create_logging_group_or_timer ? [] : [compact([try(yandex_function.yc_function.id, null)])]
+    content {
+      cron_expression = var.cron_expression
+    }
+  }
+
+  # timer {
+  #   cron_expression = "*/15 * ? * * *"
+  # }
   function {
     id                 = yandex_function.yc_function.id
     service_account_id = yandex_iam_service_account.default_cloud_function_sa[0].id

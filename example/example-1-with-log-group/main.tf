@@ -3,6 +3,7 @@ module "cloud_function" {
 
   # Cloud Function Definition
   zip_filename      = "../../handler.zip"
+  user_hash         = "yc-defined-string-for-tf-module" # User-defined string for current function version. User must change this string any times when function changed. Function will be updated when hash is changed.
   runtime           = "bash-2204"
   entrypoint        = "handler.sh"
   memory            = 128

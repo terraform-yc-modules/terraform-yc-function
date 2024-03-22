@@ -135,7 +135,8 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_create_logging_group"></a> [create\_logging\_group](#input\_create\_logging\_group) | Flag for enabling or disabling logging group creation. | `bool` | `true` | no |
+| <a name="input_create_logging_group_or_timer"></a> [create\_logging\_group\_or\_timer](#input\_create\_logging\_group\_or\_timer) | Flag for enabling logging group creation (true) or enabling timer with cron expression (false). | `bool` | `true` | no |
+| <a name="input_cron_expression"></a> [cron\_expression](#input\_cron\_expression) | value | `string` | `"*/15 * ? * * *"` | no |
 | <a name="input_entrypoint"></a> [entrypoint](#input\_entrypoint) | Entrypoint for Yandex Cloud Function. | `string` | `"handler.sh"` | no |
 | <a name="input_execution_timeout"></a> [execution\_timeout](#input\_execution\_timeout) | Execution timeout in seconds for Yandex Cloud Function. | `number` | `10` | no |
 | <a name="input_folder_id"></a> [folder\_id](#input\_folder\_id) | The ID of the folder that the Cloud Function belongs to. | `string` | `null` | no |
@@ -144,6 +145,7 @@ No modules.
 | <a name="input_runtime"></a> [runtime](#input\_runtime) | Runtime for Yandex Cloud Function. | `string` | `"bash-2204"` | no |
 | <a name="input_service_account_name"></a> [service\_account\_name](#input\_service\_account\_name) | IAM service account name. | `string` | `"function-service-account"` | no |
 | <a name="input_use_existing_sa"></a> [use\_existing\_sa](#input\_use\_existing\_sa) | Use existing service accounts (true) or not (false). | `bool` | `false` | no |
+| <a name="input_user_hash"></a> [user\_hash](#input\_user\_hash) | User-defined string for current function version.<br>    User must change this string any times when function changed. <br>    Function will be updated when hash is changed." | `string` | `"yc-defined-string"` | no |
 | <a name="input_zip_filename"></a> [zip\_filename](#input\_zip\_filename) | Filename to zip archive for the version. | `string` | n/a | yes |
 
 ## Outputs
