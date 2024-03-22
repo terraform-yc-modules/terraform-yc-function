@@ -8,11 +8,11 @@ resource "random_string" "unique_id" {
 
 variable "policy" {
   description = "List definition for Yandex Cloud Function scaling policies."
-  type = map(any)
+  type        = map(any)
   default = {
-    tag      = "$latest"
+    tag                  = "$latest"
     zone_instances_limit = 3
-    zone_requests_limit = 100
+    zone_requests_limit  = 100
   }
 }
 

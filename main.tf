@@ -16,15 +16,15 @@ resource "yandex_iam_service_account" "default_cloud_function_sa" {
 
 resource "yandex_resourcemanager_folder_iam_binding" "invoker" {
   folder_id = local.folder_id
-  role = "serverless.functions.invoker"
+  role      = "serverless.functions.invoker"
   members = [
     "serviceAccount:${yandex_iam_service_account.default_cloud_function_sa[0].id}",
   ]
 }
 
 resource "yandex_logging_group" "yc_log_group" {
-  count = var.create_logging_group ? 1 : 0
-  name      = "yc-logging-group-${random_string.unique_id.result}"
+  count       = var.create_logging_group ? 1 : 0
+  name        = "yc-logging-group-${random_string.unique_id.result}"
   description = "this is the yc logging group for tf-module"
 }
 
@@ -50,16 +50,16 @@ resource "yandex_function_trigger" "yc_trigger" {
   dynamic "logging" {
     for_each = var.create_logging_group ? compact([try(yandex_logging_group.yc_log_group[0].id, null)]) : []
     content {
-      group_id = logging.value
+      group_id       = logging.value
       resource_types = ["serverless.function"]
-      resource_ids = [yandex_function.yc_function.id]
-      levels = ["INFO"]
+      resource_ids   = [yandex_function.yc_function.id]
+      levels         = ["INFO"]
       batch_cutoff   = 1
       batch_size     = 1
     }
   }
   function {
-    id = yandex_function.yc_function.id
+    id                 = yandex_function.yc_function.id
     service_account_id = yandex_iam_service_account.default_cloud_function_sa[0].id
   }
 }
@@ -68,8 +68,8 @@ resource "yandex_function_scaling_policy" "my_scaling_policy" {
   function_id = yandex_function.yc_function.id
 
   policy {
-    tag = var.policy.tag
+    tag                  = var.policy.tag
     zone_instances_limit = var.policy.zone_instances_limit
-    zone_requests_limit = var.policy.zone_requests_limit
+    zone_requests_limit  = var.policy.zone_requests_limit
   }
 }
