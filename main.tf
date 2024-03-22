@@ -65,10 +65,7 @@ resource "yandex_function_trigger" "yc_trigger" {
       cron_expression = var.cron_expression
     }
   }
-
-  # timer {
-  #   cron_expression = "*/15 * ? * * *"
-  # }
+  
   function {
     id                 = yandex_function.yc_function.id
     service_account_id = yandex_iam_service_account.default_cloud_function_sa[0].id
