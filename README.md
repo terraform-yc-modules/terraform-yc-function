@@ -94,6 +94,8 @@ module "cloud_function" {
 export YC_TOKEN=$(yc iam create-token)
 export YC_CLOUD_ID=$(yc config get cloud-id)
 export YC_FOLDER_ID=$(yc config get folder-id)
+export TF_VAR_YC_KEY="yc-key"
+export TF_VAR_YC_VALUE="yc-value"
 ```
 
 
@@ -112,7 +114,7 @@ export YC_FOLDER_ID=$(yc config get folder-id)
 | Name | Version |
 |------|---------|
 | <a name="provider_random"></a> [random](#provider\_random) | 3.6.0 |
-| <a name="provider_yandex"></a> [yandex](#provider\_yandex) | 0.107.0 |
+| <a name="provider_yandex"></a> [yandex](#provider\_yandex) | 0.112.0 |
 
 ## Modules
 
@@ -127,15 +129,18 @@ No modules.
 | [yandex_function_scaling_policy.my_scaling_policy](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/function_scaling_policy) | resource |
 | [yandex_function_trigger.yc_trigger](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/function_trigger) | resource |
 | [yandex_iam_service_account.default_cloud_function_sa](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/iam_service_account) | resource |
+| [yandex_iam_service_account_static_access_key.cloud_func_static_key](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/iam_service_account_static_access_key) | resource |
 | [yandex_logging_group.yc_log_group](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/logging_group) | resource |
 | [yandex_resourcemanager_folder_iam_binding.invoker](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/resourcemanager_folder_iam_binding) | resource |
+| [yandex_resourcemanager_folder_iam_member.cloud_func_editor](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/resourcemanager_folder_iam_member) | resource |
+| [yandex_storage_bucket.cloud_func_bucket](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/storage_bucket) | resource |
 | [yandex_client_config.client](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/data-sources/client_config) | data source |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_create_logging_group_or_timer"></a> [create\_logging\_group\_or\_timer](#input\_create\_logging\_group\_or\_timer) | Flag for enabling logging group creation (true) or enabling timer with cron expression (false). | `bool` | `true` | no |
+| <a name="input_choosing_trigger_type"></a> [choosing\_trigger\_type](#input\_choosing\_trigger\_type) | Choosing type for cloud function trigger | `string` | `"logging"` | no |
 | <a name="input_cron_expression"></a> [cron\_expression](#input\_cron\_expression) | value | `string` | `"*/15 * ? * * *"` | no |
 | <a name="input_entrypoint"></a> [entrypoint](#input\_entrypoint) | Entrypoint for Yandex Cloud Function. | `string` | `"handler.sh"` | no |
 | <a name="input_execution_timeout"></a> [execution\_timeout](#input\_execution\_timeout) | Execution timeout in seconds for Yandex Cloud Function. | `number` | `10` | no |

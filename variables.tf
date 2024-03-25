@@ -46,12 +46,6 @@ variable "use_existing_sa" {
   default     = false
 }
 
-variable "create_logging_group_or_timer" {
-  description = "Flag for enabling logging group creation (true) or enabling timer with cron expression (false)."
-  type        = bool
-  default     = true
-}
-
 variable "folder_id" {
   description = "The ID of the folder that the Cloud Function belongs to."
   type        = string
@@ -84,4 +78,15 @@ variable "execution_timeout" {
 variable "zip_filename" {
   description = "Filename to zip archive for the version."
   type        = string
+}
+
+
+variable "choosing_trigger_type" {
+  description = "Choosing type for cloud function trigger"
+  type        = string
+  default     = "logging"
+  validation {
+    condition     = contains(["logging", "timer", "object_storage"], var.choosing_trigger_type)
+    error_message = "Trigger type should be logging, timer or object_storage."
+  }
 }
