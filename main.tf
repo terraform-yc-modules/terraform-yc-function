@@ -42,6 +42,15 @@ resource "yandex_resourcemanager_folder_iam_binding" "invoker" {
   ]
 }
 
+resource "yandex_resourcemanager_folder_iam_binding" "logging_reader" {
+  count     = var.choosing_trigger_type == "logging" ? 1 : 0
+  folder_id = local.folder_id
+  role      = "logging.reader"
+  members = [
+    "serviceAccount:${yandex_iam_service_account.default_cloud_function_sa[0].id}",
+  ]
+}
+
 resource "yandex_logging_group" "yc_log_group" {
   count       = var.choosing_trigger_type == "logging" ? 1 : 0
   name        = "yc-logging-group-${random_string.unique_id.result}"
