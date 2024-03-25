@@ -107,7 +107,6 @@ resource "yandex_function_trigger" "yc_trigger" {
 
 resource "yandex_function_scaling_policy" "my_scaling_policy" {
   function_id = yandex_function.yc_function.id
-
   policy {
     tag                  = var.policy.tag
     zone_instances_limit = var.policy.zone_instances_limit

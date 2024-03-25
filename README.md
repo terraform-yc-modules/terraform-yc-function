@@ -2,7 +2,7 @@
 
 ## Features
 
-- Create Cloud Function with forwarding logs to Cloud Logging
+- Create Cloud Function with scaling policy and trigger type - logging, timer or object storage
 
 
 ## Cloud Function Definition
@@ -11,7 +11,7 @@
 resource "yandex_function" "yc_function" {
   name               = "yc-function-example-ymq-${random_string.unique_id.result}"
   description        = "this is the yc cloud function for tf-module with ymq"
-  user_hash          = "yc-defined-string-for-tf-module" # User-defined string for current function version. User must change this string any times when function changed. Function will be updated when hash is changed.
+  user_hash          = var.user_hash
   runtime            = var.runtime
   entrypoint         = var.entrypoint
   memory             = var.memory
@@ -30,11 +30,10 @@ resource "yandex_function" "yc_function" {
 ```
 resource "yandex_function_scaling_policy" "my_scaling_policy" {
   function_id = yandex_function.yc_function.id
-
   policy {
-    tag = var.policy.tag
+    tag                  = var.policy.tag
     zone_instances_limit = var.policy.zone_instances_limit
-    zone_requests_limit = var.policy.zone_requests_limit
+    zone_requests_limit  = var.policy.zone_requests_limit
   }
 }
 ```
@@ -45,19 +44,40 @@ resource "yandex_function_scaling_policy" "my_scaling_policy" {
 resource "yandex_function_trigger" "yc_trigger" {
   name        = "yc-function-trigger-${random_string.unique_id.result}"
   description = "this is the yc cloud function trigger with cloud logging"
+
   dynamic "logging" {
-    for_each = var.create_logging_group ? compact([try(yandex_logging_group.yc_log_group[0].id, null)]) : []
+    for_each = var.choosing_trigger_type == "logging" ? compact([try(yandex_logging_group.yc_log_group[0].id, null)]) : []
     content {
-      group_id = logging.value
+      group_id       = logging.value
       resource_types = ["serverless.function"]
-      resource_ids = [yandex_function.yc_function.id]
-      levels = ["INFO"]
+      resource_ids   = [yandex_function.yc_function.id]
+      levels         = ["INFO"]
       batch_cutoff   = 1
       batch_size     = 1
     }
   }
+
+  dynamic "timer" {
+    for_each = var.choosing_trigger_type == "timer" ? [compact([try(yandex_function.yc_function.id, null)])] : []
+    content {
+      cron_expression = var.cron_expression
+    }
+  }
+
+  dynamic "object_storage" {
+    for_each = var.choosing_trigger_type == "object_storage" ? [compact([try(yandex_function.yc_function.id, null)])] : []
+    content {
+      bucket_id    = yandex_storage_bucket.cloud_func_bucket[0].id
+      create       = true
+      update       = true
+      delete       = true
+      batch_cutoff = 1
+      batch_size   = 1
+    }
+  }
+
   function {
-    id = yandex_function.yc_function.id
+    id                 = yandex_function.yc_function.id
     service_account_id = yandex_iam_service_account.default_cloud_function_sa[0].id
   }
 }
@@ -70,15 +90,16 @@ module "cloud_function" {
   source = "../../"
 
   # Cloud Function Definition
-  zip_filename = "../../handler.zip"
-  runtime = "bash-2204"
-  entrypoint = "handler.sh"
-  memory = 128
+  zip_filename      = "../../handler.zip"
+  user_hash         = "yc-defined-string-for-tf-module" # User-defined string for current function version. User must change this string any times when function changed. Function will be updated when hash is changed.
+  runtime           = "bash-2204"
+  entrypoint        = "handler.sh"
+  memory            = 128
   execution_timeout = 10
 
   # Cloud Function Scaling Policy Definition
   policy = {
-    tag = "$latest"
+    tag                  = "$latest"
     zone_instances_limit = 3
     zone_requests_limit  = 100
   }
@@ -94,8 +115,6 @@ module "cloud_function" {
 export YC_TOKEN=$(yc iam create-token)
 export YC_CLOUD_ID=$(yc config get cloud-id)
 export YC_FOLDER_ID=$(yc config get folder-id)
-export TF_VAR_YC_KEY="yc-key"
-export TF_VAR_YC_VALUE="yc-value"
 ```
 
 
