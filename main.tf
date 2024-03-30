@@ -5,7 +5,8 @@ locals {
   iam_defaults = {
     service_account_name = "function-service-account-${random_string.unique_id.result}"
   }
-  create_sa = var.use_existing_sa && var.existing_service_account_id != null ? true : false
+  create_sa        = var.use_existing_sa && var.existing_service_account_id != null ? true : false
+  create_log_group = var.use_existing_log_group && var.existing_log_group_id != null ? true : false
 }
 
 resource "time_sleep" "wait_for_iam" {
@@ -14,6 +15,24 @@ resource "time_sleep" "wait_for_iam" {
     yandex_resourcemanager_folder_iam_binding.invoker,
     yandex_resourcemanager_folder_iam_binding.editor
   ]
+}
+
+resource "yandex_lockbox_secret" "yc_secret" {
+  name = "yc-lockbox-secret-${random_string.unique_id.result}"
+}
+
+resource "yandex_lockbox_secret_version" "yc_version" {
+  secret_id = yandex_lockbox_secret.yc_secret.id
+  entries {
+    key        = var.lockbox_secret_key
+    text_value = var.lockbox_secret_value
+  }
+}
+
+resource "yandex_logging_group" "default_log_group" {
+  count     = local.create_log_group ? 0 : 1
+  folder_id = local.folder_id
+  name      = "yc-logging-group-${random_string.unique_id.result}"
 }
 
 resource "yandex_iam_service_account" "default_cloud_function_sa" {
@@ -40,9 +59,17 @@ resource "yandex_resourcemanager_folder_iam_binding" "editor" {
   ]
 }
 
+resource "yandex_resourcemanager_folder_iam_binding" "lockbox_payload_viewer" {
+  folder_id = local.folder_id
+  role      = "lockbox.payloadViewer"
+  members = [
+    "serviceAccount:${yandex_iam_service_account.default_cloud_function_sa[0].id}",
+  ]
+}
+
 resource "yandex_function" "yc_function" {
-  name               = "yc-function-example-ymq-${random_string.unique_id.result}"
-  description        = "this is the yc cloud function for tf-module with ymq"
+  name               = "yc-function-example-${random_string.unique_id.result}"
+  description        = "this is the yc cloud function for tf-module"
   user_hash          = var.user_hash
   runtime            = var.runtime
   entrypoint         = var.entrypoint
@@ -53,6 +80,18 @@ resource "yandex_function" "yc_function" {
 
   content {
     zip_filename = var.zip_filename
+  }
+
+  log_options {
+    log_group_id = coalesce(var.existing_log_group_id, try(yandex_logging_group.default_log_group[0].id, ""))
+    min_level    = var.min_level
+  }
+
+  secrets {
+    id                   = yandex_lockbox_secret.yc_secret.id
+    version_id           = yandex_lockbox_secret_version.yc_version.id
+    key                  = var.lockbox_secret_key
+    environment_variable = var.environment_variable
   }
 }
 

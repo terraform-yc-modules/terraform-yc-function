@@ -88,7 +88,6 @@ variable "zip_filename" {
   default     = "../../handler.zip"
 }
 
-
 variable "choosing_trigger_type" {
   description = "Choosing type for cloud function trigger"
   type        = string
@@ -163,4 +162,43 @@ variable "message_queue" {
     batch_size         = 1
     visibility_timeout = 600
   }
+}
+
+variable "use_existing_log_group" {
+  description = <<EOF
+    Use existing logging group (true) or not (false).
+    If `true` parameters `existing_log_group_id` must be set.
+  EOF
+  type        = bool
+  default     = false
+}
+
+variable "existing_log_group_id" {
+  description = "Existing logging group id."
+  type        = string
+  default     = null # "e23moaejmq8m74tssfu9"
+}
+
+variable "min_level" {
+  description = "Minimal level of logging for Cloud Funcion."
+  type        = string
+  default     = "ERROR"
+}
+
+variable "lockbox_secret_key" {
+  description = "Lockbox secret key."
+  type        = string
+  default     = "yc-key" # use .tfvars instead of default key
+}
+
+variable "lockbox_secret_value" {
+  description = "Lockbox secret value."
+  type        = string
+  default     = "yc-value" # use .tfvars instead of default value
+}
+
+variable "environment_variable" {
+  description = "Function's environment variable in which secret's value will be stored."
+  type        = string
+  default     = "ENV_VARIABLE"
 }
