@@ -5,56 +5,39 @@ locals {
   iam_defaults = {
     service_account_name = "function-service-account-${random_string.unique_id.result}"
   }
-  create_sa = var.use_existing_sa
+  create_sa = var.use_existing_sa && var.existing_service_account_id != null ? true : false
 }
 
-resource "yandex_resourcemanager_folder_iam_member" "cloud_func_editor" {
-  count     = var.choosing_trigger_type == "object_storage" ? 1 : 0
-  folder_id = local.folder_id
-  role      = "storage.admin"
-  member    = "serviceAccount:${yandex_iam_service_account.default_cloud_function_sa[0].id}"
-}
-
-resource "yandex_iam_service_account_static_access_key" "cloud_func_static_key" {
-  count              = var.choosing_trigger_type == "object_storage" ? 1 : 0
-  service_account_id = yandex_iam_service_account.default_cloud_function_sa[0].id
-  description        = "static access key for object storage"
-}
-
-resource "yandex_storage_bucket" "cloud_func_bucket" {
-  count      = var.choosing_trigger_type == "object_storage" ? 1 : 0
-  access_key = yandex_iam_service_account_static_access_key.cloud_func_static_key[0].access_key
-  secret_key = yandex_iam_service_account_static_access_key.cloud_func_static_key[0].secret_key
-  bucket     = "bucket-cloud-func-${random_string.unique_id.result}"
+resource "time_sleep" "wait_for_iam" {
+  create_duration = "5s"
+  depends_on = [
+    yandex_resourcemanager_folder_iam_binding.invoker,
+    yandex_resourcemanager_folder_iam_binding.editor
+  ]
 }
 
 resource "yandex_iam_service_account" "default_cloud_function_sa" {
   count     = local.create_sa ? 0 : 1
   folder_id = local.folder_id
-  name      = try("${var.service_account_name}-${random_string.unique_id.result}", local.iam_defaults.service_account_name)
+  name      = try("${var.existing_service_account_name}-${random_string.unique_id.result}", local.iam_defaults.service_account_name)
 }
 
 resource "yandex_resourcemanager_folder_iam_binding" "invoker" {
+  count     = local.create_sa ? 0 : 1
   folder_id = local.folder_id
-  role      = "serverless.functions.invoker"
+  role      = "functions.functionInvoker"
   members = [
     "serviceAccount:${yandex_iam_service_account.default_cloud_function_sa[0].id}",
   ]
 }
 
-resource "yandex_resourcemanager_folder_iam_binding" "logging_reader" {
-  count     = var.choosing_trigger_type == "logging" ? 1 : 0
+resource "yandex_resourcemanager_folder_iam_binding" "editor" {
+  count     = local.create_sa ? 0 : 1
   folder_id = local.folder_id
-  role      = "logging.reader"
+  role      = "editor"
   members = [
     "serviceAccount:${yandex_iam_service_account.default_cloud_function_sa[0].id}",
   ]
-}
-
-resource "yandex_logging_group" "yc_log_group" {
-  count       = var.choosing_trigger_type == "logging" ? 1 : 0
-  name        = "yc-logging-group-${random_string.unique_id.result}"
-  description = "this is the yc logging group for tf-module"
 }
 
 resource "yandex_function" "yc_function" {
@@ -65,8 +48,8 @@ resource "yandex_function" "yc_function" {
   entrypoint         = var.entrypoint
   memory             = var.memory
   execution_timeout  = var.execution_timeout
-  service_account_id = yandex_iam_service_account.default_cloud_function_sa[0].id
-  tags               = ["yc_tag"]
+  service_account_id = local.create_sa ? var.existing_service_account_id : yandex_iam_service_account.default_cloud_function_sa[0].id
+  tags               = var.tags
 
   content {
     zip_filename = var.zip_filename
@@ -78,43 +61,59 @@ resource "yandex_function_trigger" "yc_trigger" {
   description = "this is the yc cloud function trigger with cloud logging"
 
   dynamic "logging" {
-    for_each = var.choosing_trigger_type == "logging" ? compact([try(yandex_logging_group.yc_log_group[0].id, null)]) : []
+    for_each = var.choosing_trigger_type == "logging" ? compact([try(yandex_function.yc_function.id, null)]) : []
     content {
-      group_id       = logging.value
-      resource_types = ["serverless.function"]
-      resource_ids   = [yandex_function.yc_function.id]
-      levels         = ["INFO"]
-      batch_cutoff   = 1
-      batch_size     = 1
+      group_id       = var.logging.group_id
+      resource_types = var.logging.resource_types
+      levels         = var.logging.levels
+      batch_cutoff   = var.logging.batch_cutoff
+      batch_size     = var.logging.batch_size
     }
   }
 
   dynamic "timer" {
-    for_each = var.choosing_trigger_type == "timer" ? [compact([try(yandex_function.yc_function.id, null)])] : []
+    for_each = var.choosing_trigger_type == "timer" ? compact([try(yandex_function.yc_function.id, null)]) : []
     content {
-      cron_expression = var.cron_expression
+      cron_expression = var.timer.cron_expression
     }
   }
 
   dynamic "object_storage" {
-    for_each = var.choosing_trigger_type == "object_storage" ? [compact([try(yandex_function.yc_function.id, null)])] : []
+    for_each = var.choosing_trigger_type == "object_storage" ? compact([try(yandex_function.yc_function.id, null)]) : []
     content {
-      bucket_id    = yandex_storage_bucket.cloud_func_bucket[0].id
-      create       = true
-      update       = true
-      delete       = true
-      batch_cutoff = 1
-      batch_size   = 1
+      bucket_id    = var.object_storage.bucket_id
+      create       = var.object_storage.create
+      update       = var.object_storage.update
+      delete       = var.object_storage.delete
+      batch_cutoff = var.object_storage.batch_cutoff
+      batch_size   = var.object_storage.batch_size
+    }
+  }
+
+  dynamic "message_queue" {
+    for_each = var.choosing_trigger_type == "message_queue" ? compact([try(yandex_function.yc_function.id, null)]) : []
+    content {
+      queue_id           = var.message_queue.queue_id
+      service_account_id = local.create_sa ? var.existing_service_account_id : yandex_iam_service_account.default_cloud_function_sa[0].id
+      batch_cutoff       = var.message_queue.batch_cutoff
+      batch_size         = var.message_queue.batch_size
+      visibility_timeout = var.message_queue.visibility_timeout
     }
   }
 
   function {
     id                 = yandex_function.yc_function.id
-    service_account_id = yandex_iam_service_account.default_cloud_function_sa[0].id
+    service_account_id = local.create_sa ? var.existing_service_account_id : yandex_iam_service_account.default_cloud_function_sa[0].id
   }
+
+  depends_on = [
+    yandex_resourcemanager_folder_iam_binding.editor,
+    yandex_resourcemanager_folder_iam_binding.invoker,
+    time_sleep.wait_for_iam
+  ]
 }
 
-resource "yandex_function_scaling_policy" "my_scaling_policy" {
+resource "yandex_function_scaling_policy" "yc_scaling_policy" {
   function_id = yandex_function.yc_function.id
   policy {
     tag                  = var.policy.tag

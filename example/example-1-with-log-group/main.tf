@@ -8,6 +8,7 @@ module "cloud_function" {
   entrypoint        = "handler.sh"
   memory            = 128
   execution_timeout = 10
+  tags              = ["yc_tag"]
 
   # Cloud Function Scaling Policy Definition
   policy = {
@@ -15,4 +16,7 @@ module "cloud_function" {
     zone_instances_limit = 3
     zone_requests_limit  = 100
   }
+
+  # Cloud Function Trigger Definition
+  choosing_trigger_type = "message_queue"
 }
