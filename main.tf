@@ -13,7 +13,8 @@ resource "time_sleep" "wait_for_iam" {
   create_duration = "5s"
   depends_on = [
     yandex_resourcemanager_folder_iam_binding.invoker,
-    yandex_resourcemanager_folder_iam_binding.editor
+    yandex_resourcemanager_folder_iam_binding.editor,
+    yandex_resourcemanager_folder_iam_binding.lockbox_payload_viewer
   ]
 }
 
@@ -60,6 +61,7 @@ resource "yandex_resourcemanager_folder_iam_binding" "editor" {
 }
 
 resource "yandex_resourcemanager_folder_iam_binding" "lockbox_payload_viewer" {
+  count     = local.create_sa ? 0 : 1
   folder_id = local.folder_id
   role      = "lockbox.payloadViewer"
   members = [
@@ -93,6 +95,13 @@ resource "yandex_function" "yc_function" {
     key                  = var.lockbox_secret_key
     environment_variable = var.environment_variable
   }
+
+  depends_on = [
+    yandex_resourcemanager_folder_iam_binding.editor,
+    yandex_resourcemanager_folder_iam_binding.invoker,
+    yandex_resourcemanager_folder_iam_binding.lockbox_payload_viewer,
+    time_sleep.wait_for_iam
+  ]
 }
 
 resource "yandex_function_trigger" "yc_trigger" {
@@ -148,6 +157,7 @@ resource "yandex_function_trigger" "yc_trigger" {
   depends_on = [
     yandex_resourcemanager_folder_iam_binding.editor,
     yandex_resourcemanager_folder_iam_binding.invoker,
+    yandex_resourcemanager_folder_iam_binding.lockbox_payload_viewer,
     time_sleep.wait_for_iam
   ]
 }
