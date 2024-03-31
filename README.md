@@ -2,10 +2,25 @@
 
 ## Features
 
-- Create Cloud Function with scaling policy and different trigger types
+- Create Cloud Function with lockbox secret, scaling policy and a trigger type
 
 
 ## Cloud Function Definition
+First, you need to define list of parameters for the Cloud Function:
+- zip_filename
+- user_hash
+- runtime
+- entrypoint
+- memory 
+- execution_timeout
+- tags
+
+Notes:
+- you can use existing `service_account_id` or create new SA with bindings
+- you can use existing `log_group_id` or create new loggging group
+- lockbox secret is used by default for the function
+- you should use environment variables or tfvars-files to redefine `lockbox_secret_key` and `lockbox_secret_value`
+
 
 ```
 resource "yandex_function" "yc_function" {
@@ -38,6 +53,7 @@ resource "yandex_function" "yc_function" {
 ```
 
 ## Cloud Function Scaling Policy Definition
+Define the policy `tag`, `zone_instances_limit` and `zone_requests_limit`.
 
 ```
 resource "yandex_function_scaling_policy" "yc_scaling_policy" {
@@ -51,6 +67,19 @@ resource "yandex_function_scaling_policy" "yc_scaling_policy" {
 ```
 
 ## Cloud Function Trigger Definition
+Define parameter `choosing_trigger_type` to choose one of the trigger types:
+- logging
+- timer
+- object_storage
+- message_queue
+
+Only one option is acceptable.
+
+`choosing_trigger_type` can not have other options because of the validation condition.
+
+Notes:
+- you can use existing `service_account_id` or create new SA with bindings
+- it's possible to change default values in variables for different trigger types
 
 ```
 resource "yandex_function_trigger" "yc_trigger" {
