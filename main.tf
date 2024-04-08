@@ -19,11 +19,13 @@ resource "time_sleep" "wait_for_iam" {
 }
 
 resource "yandex_lockbox_secret" "yc_secret" {
-  name = "yc-lockbox-secret-${random_string.unique_id.result}"
+  description = "YC Lockbox Secret"
+  name        = "yc-lockbox-secret-${random_string.unique_id.result}"
 }
 
 resource "yandex_lockbox_secret_version" "yc_version" {
-  secret_id = yandex_lockbox_secret.yc_secret.id
+  description = "YC Lockbox Secret Version"
+  secret_id   = yandex_lockbox_secret.yc_secret.id
   entries {
     key        = var.lockbox_secret_key
     text_value = var.lockbox_secret_value
@@ -31,15 +33,17 @@ resource "yandex_lockbox_secret_version" "yc_version" {
 }
 
 resource "yandex_logging_group" "default_log_group" {
-  count     = local.create_log_group ? 0 : 1
-  folder_id = local.folder_id
-  name      = "yc-logging-group-${random_string.unique_id.result}"
+  description = "YC Cloud Logging Group"
+  count       = local.create_log_group ? 0 : 1
+  folder_id   = local.folder_id
+  name        = "yc-logging-group-${random_string.unique_id.result}"
 }
 
 resource "yandex_iam_service_account" "default_cloud_function_sa" {
-  count     = local.create_sa ? 0 : 1
-  folder_id = local.folder_id
-  name      = try("${var.existing_service_account_name}-${random_string.unique_id.result}", local.iam_defaults.service_account_name)
+  description = "YC Service Account"
+  count       = local.create_sa ? 0 : 1
+  folder_id   = local.folder_id
+  name        = try("${var.existing_service_account_name}-${random_string.unique_id.result}", local.iam_defaults.service_account_name)
 }
 
 resource "yandex_resourcemanager_folder_iam_binding" "invoker" {
@@ -80,7 +84,7 @@ resource "yandex_function_iam_binding" "function_iam" {
 
 resource "yandex_function" "yc_function" {
   name               = "yc-function-example-${random_string.unique_id.result}"
-  description        = "this is the yc cloud function for tf-module"
+  description        = "YC Cloud Function"
   user_hash          = var.user_hash
   runtime            = var.runtime
   entrypoint         = var.entrypoint
@@ -98,9 +102,8 @@ resource "yandex_function" "yc_function" {
     min_level    = var.min_level
   }
 
-
   dynamic "storage_mounts" {
-    for_each = var.mount_bucket == false ? [] : compact([try(yandex_iam_service_account.default_cloud_function_sa[0].id, null)])
+    for_each = var.mount_bucket == false ? [] : tolist(yandex_iam_service_account.default_cloud_function_sa[0].id)
     content {
       mount_point_name = var.storage_mounts.mount_point_name
       bucket           = var.storage_mounts.bucket
@@ -119,6 +122,22 @@ resource "yandex_function" "yc_function" {
     environment_variable = var.environment_variable
   }
 
+  dynamic "async_invocation" {
+    for_each = var.use_async_invocation == false ? [] : [yandex_iam_service_account.default_cloud_function_sa[0].id]
+    content {
+      retries_count      = var.retries_count
+      service_account_id = local.create_sa ? var.existing_service_account_id : yandex_iam_service_account.default_cloud_function_sa[0].id
+      ymq_failure_target {
+        service_account_id = local.create_sa ? var.existing_service_account_id : yandex_iam_service_account.default_cloud_function_sa[0].id
+        arn                = var.ymq_failure_target
+      }
+      ymq_success_target {
+        service_account_id = local.create_sa ? var.existing_service_account_id : yandex_iam_service_account.default_cloud_function_sa[0].id
+        arn                = var.ymq_success_target
+      }
+    }
+  }
+
   depends_on = [
     yandex_resourcemanager_folder_iam_binding.editor,
     yandex_resourcemanager_folder_iam_binding.invoker,
@@ -129,10 +148,10 @@ resource "yandex_function" "yc_function" {
 
 resource "yandex_function_trigger" "yc_trigger" {
   name        = "yc-function-trigger-${random_string.unique_id.result}"
-  description = "this is the yc cloud function trigger with cloud logging"
+  description = "YC Cloud Function Trigger"
 
   dynamic "logging" {
-    for_each = var.choosing_trigger_type == "logging" ? compact([try(yandex_function.yc_function.id, null)]) : []
+    for_each = var.choosing_trigger_type == "logging" ? [yandex_function.yc_function.id] : []
     content {
       group_id       = var.logging.group_id
       resource_types = var.logging.resource_types
@@ -143,14 +162,14 @@ resource "yandex_function_trigger" "yc_trigger" {
   }
 
   dynamic "timer" {
-    for_each = var.choosing_trigger_type == "timer" ? compact([try(yandex_function.yc_function.id, null)]) : []
+    for_each = var.choosing_trigger_type == "timer" ? [yandex_function.yc_function.id] : []
     content {
       cron_expression = var.timer.cron_expression
     }
   }
 
   dynamic "object_storage" {
-    for_each = var.choosing_trigger_type == "object_storage" ? compact([try(yandex_function.yc_function.id, null)]) : []
+    for_each = var.choosing_trigger_type == "object_storage" ? [yandex_function.yc_function.id] : []
     content {
       bucket_id    = var.object_storage.bucket_id
       create       = var.object_storage.create
@@ -162,7 +181,7 @@ resource "yandex_function_trigger" "yc_trigger" {
   }
 
   dynamic "message_queue" {
-    for_each = var.choosing_trigger_type == "message_queue" ? compact([try(yandex_function.yc_function.id, null)]) : []
+    for_each = var.choosing_trigger_type == "message_queue" ? [yandex_function.yc_function.id] : []
     content {
       queue_id           = var.message_queue.queue_id
       service_account_id = local.create_sa ? var.existing_service_account_id : yandex_iam_service_account.default_cloud_function_sa[0].id

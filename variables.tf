@@ -23,7 +23,7 @@ variable "user_hash" {
 }
 
 variable "scaling_policy" {
-  description = "List definition for Yandex Cloud Function scaling policies."
+  description = "Map definition for Yandex Cloud Function scaling policies."
   type        = map(any)
   default = {
     tag                  = "$latest"
@@ -99,7 +99,6 @@ variable "zip_filename" {
 variable "choosing_trigger_type" {
   description = "Choosing type for cloud function trigger"
   type        = string
-  default     = "logging"
   validation {
     condition     = contains(["logging", "timer", "object_storage", "message_queue"], var.choosing_trigger_type)
     error_message = "Trigger type should be logging, timer, object_storage or message_queue."
@@ -245,4 +244,28 @@ variable "storage_mounts" {
     mount_point_name = "yc-function"
     bucket           = null
   }
+}
+
+variable "use_async_invocation" {
+  description = "Use asynchronous invocation to message queue (true) or not (false). If `true`, parameters `ymq_success_target` and `ymq_failure_target` must be set."
+  type        = bool
+  default     = false
+}
+
+variable "retries_count" {
+  description = "Maximum number of retries for async invocation."
+  type        = number
+  default     = 3
+}
+
+variable "ymq_success_target" {
+  description = "Target for successful async invocation."
+  type        = string
+  default     = null # "yrn:yc:ymq:ru-central1:b1gdddu3a9appamt3aaa:ymq-success"
+}
+
+variable "ymq_failure_target" {
+  description = "Target for unsuccessful async invocation."
+  type        = string
+  default     = null # "yrn:yc:ymq:ru-central1:b1gdddu3a9appamt3aaa:ymq-failure"
 }
