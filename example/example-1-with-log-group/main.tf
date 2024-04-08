@@ -2,21 +2,43 @@ module "cloud_function" {
   source = "../../"
 
   # Cloud Function Definition
-  zip_filename      = "../../handler.zip"
-  user_hash         = "yc-defined-string-for-tf-module" # User-defined string for current function version. User must change this string any times when function changed. Function will be updated when hash is changed.
-  runtime           = "bash-2204"
-  entrypoint        = "handler.sh"
-  memory            = 128
-  execution_timeout = 10
-  tags              = ["yc_tag"]
+  lockbox_secret_key   = var.lockbox_secret_key
+  lockbox_secret_value = var.lockbox_secret_value
+
+  zip_filename = "../../handler.zip"
+
+  # storage_mounts = {
+  #   mount_point_name = "yc-function"
+  #   bucket           = "yandex-cloud-nnn"
+  # }
 
   # Cloud Function Scaling Policy Definition
-  policy = {
+  scaling_policy = {
     tag                  = "$latest"
     zone_instances_limit = 3
     zone_requests_limit  = 100
   }
 
   # Cloud Function Trigger Definition
-  choosing_trigger_type = "message_queue"
+  choosing_trigger_type = "logging"
+
+  logging = {
+    group_id     = "e23moaejmq8m74tssfu9"
+    batch_cutoff = 1
+    batch_size   = 1
+  }
+
+  # timer = {}
+
+  # object_storage = {
+  #   bucket_id    = "yandex-cloud-nnn"
+  #   batch_cutoff = 1
+  #   batch_size   = 1
+  # }
+
+  # message_queue = {
+  #   queue_id     = "yrn:yc:ymq:ru-central1:b1gfl7u3a9ahaamt3ore:anana"
+  #   batch_cutoff = 1
+  #   batch_size   = 1
+  # }
 }

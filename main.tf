@@ -69,6 +69,15 @@ resource "yandex_resourcemanager_folder_iam_binding" "lockbox_payload_viewer" {
   ]
 }
 
+resource "yandex_function_iam_binding" "function_iam" {
+  count       = var.public_access ? 1 : 0
+  function_id = yandex_function.yc_function.id
+  role        = "functions.functionInvoker"
+  members = [
+    "system:allUsers",
+  ]
+}
+
 resource "yandex_function" "yc_function" {
   name               = "yc-function-example-${random_string.unique_id.result}"
   description        = "this is the yc cloud function for tf-module"
@@ -87,6 +96,20 @@ resource "yandex_function" "yc_function" {
   log_options {
     log_group_id = coalesce(var.existing_log_group_id, try(yandex_logging_group.default_log_group[0].id, ""))
     min_level    = var.min_level
+  }
+
+
+  dynamic "storage_mounts" {
+    for_each = var.mount_bucket == false ? [] : compact([try(yandex_iam_service_account.default_cloud_function_sa[0].id, null)])
+    content {
+      mount_point_name = var.storage_mounts.mount_point_name
+      bucket           = var.storage_mounts.bucket
+      prefix           = var.storage_mounts.prefix
+      read_only        = var.storage_mounts.read_only
+    }
+  }
+  connectivity {
+    network_id = var.attaching_vpc == false ? "" : var.network_id
   }
 
   secrets {
@@ -165,8 +188,8 @@ resource "yandex_function_trigger" "yc_trigger" {
 resource "yandex_function_scaling_policy" "yc_scaling_policy" {
   function_id = yandex_function.yc_function.id
   policy {
-    tag                  = var.policy.tag
-    zone_instances_limit = var.policy.zone_instances_limit
-    zone_requests_limit  = var.policy.zone_requests_limit
+    tag                  = var.scaling_policy.tag
+    zone_instances_limit = var.scaling_policy.zone_instances_limit
+    zone_requests_limit  = var.scaling_policy.zone_requests_limit
   }
 }

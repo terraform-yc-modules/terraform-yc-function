@@ -20,6 +20,8 @@ Notes:
 - you can use existing `log_group_id` or create new loggging group
 - lockbox secret is used by default for the function
 - you should use environment variables or tfvars-files to redefine `lockbox_secret_key` and `lockbox_secret_value`
+- you should create NAT gateway first, if you'd like to try Cloud Function's VPC integration. Then `attaching_vpc` variable should be defined
+- you can mount S3 bucket to the function. Variable `mount_bucket` and section `storage_mounts` should be defined
 
 
 ```
@@ -41,6 +43,20 @@ resource "yandex_function" "yc_function" {
   log_options {
     log_group_id = coalesce(var.existing_log_group_id, try(yandex_logging_group.default_log_group[0].id, ""))
     min_level    = var.min_level
+  }
+  
+
+  dynamic "storage_mounts" {
+    for_each = var.mount_bucket == false ? [] : compact([try(yandex_iam_service_account.default_cloud_function_sa[0].id, null)])
+    content {
+      mount_point_name = var.storage_mounts.mount_point_name
+      bucket           = var.storage_mounts.bucket
+      prefix           = var.storage_mounts.prefix
+      read_only        = var.storage_mounts.read_only
+    }
+  }
+  connectivity {
+    network_id = var.attaching_vpc == false ? "" : var.network_id
   }
 
   secrets {
@@ -66,9 +82,9 @@ Define the policy `tag`, `zone_instances_limit` and `zone_requests_limit`.
 resource "yandex_function_scaling_policy" "yc_scaling_policy" {
   function_id = yandex_function.yc_function.id
   policy {
-    tag                  = var.policy.tag
-    zone_instances_limit = var.policy.zone_instances_limit
-    zone_requests_limit  = var.policy.zone_requests_limit
+    tag                  = var.scaling_policy.tag
+    zone_instances_limit = var.scaling_policy.zone_instances_limit
+    zone_requests_limit  = var.scaling_policy.zone_requests_limit
   }
 }
 ```
@@ -184,6 +200,8 @@ module "cloud_function" {
 export YC_TOKEN=$(yc iam create-token)
 export YC_CLOUD_ID=$(yc config get cloud-id)
 export YC_FOLDER_ID=$(yc config get folder-id)
+export TF_VAR_lockbox_secret_key=<yc-key>
+export TF_VAR_lockbox_secret_value=<yc-value>
 ```
 
 
@@ -216,6 +234,7 @@ No modules.
 | [random_string.unique_id](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string) | resource |
 | [time_sleep.wait_for_iam](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
 | [yandex_function.yc_function](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/function) | resource |
+| [yandex_function_iam_binding.function_iam](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/function_iam_binding) | resource |
 | [yandex_function_scaling_policy.yc_scaling_policy](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/function_scaling_policy) | resource |
 | [yandex_function_trigger.yc_trigger](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/function_trigger) | resource |
 | [yandex_iam_service_account.default_cloud_function_sa](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/iam_service_account) | resource |
@@ -231,6 +250,7 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
+| <a name="input_attaching_vpc"></a> [attaching\_vpc](#input\_attaching\_vpc) | Whether to use vpc (true) or not (false). If `true` parameters `network_id` must be set. | `bool` | `false` | no |
 | <a name="input_choosing_trigger_type"></a> [choosing\_trigger\_type](#input\_choosing\_trigger\_type) | Choosing type for cloud function trigger | `string` | `"logging"` | no |
 | <a name="input_entrypoint"></a> [entrypoint](#input\_entrypoint) | Entrypoint for Yandex Cloud Function. | `string` | `"handler.sh"` | no |
 | <a name="input_environment_variable"></a> [environment\_variable](#input\_environment\_variable) | Function's environment variable in which secret's value will be stored. | `string` | `"ENV_VARIABLE"` | no |
@@ -239,17 +259,21 @@ No modules.
 | <a name="input_existing_service_account_id"></a> [existing\_service\_account\_id](#input\_existing\_service\_account\_id) | Existing IAM service account id. | `string` | `null` | no |
 | <a name="input_existing_service_account_name"></a> [existing\_service\_account\_name](#input\_existing\_service\_account\_name) | Existing IAM service account name. | `string` | `null` | no |
 | <a name="input_folder_id"></a> [folder\_id](#input\_folder\_id) | The ID of the folder that the Cloud Function belongs to. | `string` | `null` | no |
-| <a name="input_lockbox_secret_key"></a> [lockbox\_secret\_key](#input\_lockbox\_secret\_key) | Lockbox secret key. | `string` | `"yc-key"` | no |
-| <a name="input_lockbox_secret_value"></a> [lockbox\_secret\_value](#input\_lockbox\_secret\_value) | Lockbox secret value. | `string` | `"yc-value"` | no |
-| <a name="input_logging"></a> [logging](#input\_logging) | Trigger type of logging. | <pre>object({<br>    group_id       = string<br>    resource_types = list(string)<br>    levels         = list(string)<br>    batch_cutoff   = number<br>    batch_size     = number<br>  })</pre> | <pre>{<br>  "batch_cutoff": 1,<br>  "batch_size": 1,<br>  "group_id": "e23moaejmq8m74tssfu9",<br>  "levels": [<br>    "INFO"<br>  ],<br>  "resource_types": [<br>    "serverless.function"<br>  ]<br>}</pre> | no |
+| <a name="input_lockbox_secret_key"></a> [lockbox\_secret\_key](#input\_lockbox\_secret\_key) | Lockbox secret key. | `string` | n/a | yes |
+| <a name="input_lockbox_secret_value"></a> [lockbox\_secret\_value](#input\_lockbox\_secret\_value) | Lockbox secret value. | `string` | n/a | yes |
+| <a name="input_logging"></a> [logging](#input\_logging) | Trigger type of logging. | <pre>object({<br>    group_id       = string<br>    resource_ids   = optional(list(string))<br>    resource_types = optional(list(string), ["serverless.function"])<br>    levels         = optional(list(string), ["INFO"])<br>    batch_cutoff   = number<br>    batch_size     = number<br>    stream_names   = optional(list(string))<br>  })</pre> | <pre>{<br>  "batch_cutoff": 1,<br>  "batch_size": 1,<br>  "group_id": null<br>}</pre> | no |
 | <a name="input_memory"></a> [memory](#input\_memory) | Memory in megabytes for Yandex Cloud Function. | `number` | `128` | no |
-| <a name="input_message_queue"></a> [message\_queue](#input\_message\_queue) | Trigger type of message queue. | <pre>object({<br>    queue_id           = string<br>    service_account_id = string<br>    batch_cutoff       = number<br>    batch_size         = number<br>    visibility_timeout = number<br>  })</pre> | <pre>{<br>  "batch_cutoff": 1,<br>  "batch_size": 1,<br>  "queue_id": "yrn:yc:ymq:ru-central1:b1gfl7u3a9ahaamt3ore:anana",<br>  "service_account_id": "ajeaebn6c3kfoekg9h3b",<br>  "visibility_timeout": 600<br>}</pre> | no |
+| <a name="input_message_queue"></a> [message\_queue](#input\_message\_queue) | Trigger type of message queue. | <pre>object({<br>    queue_id           = string<br>    service_account_id = optional(string)<br>    batch_cutoff       = number<br>    batch_size         = number<br>    visibility_timeout = optional(number, 600)<br>  })</pre> | <pre>{<br>  "batch_cutoff": 1,<br>  "batch_size": 1,<br>  "queue_id": null,<br>  "service_account_id": null<br>}</pre> | no |
 | <a name="input_min_level"></a> [min\_level](#input\_min\_level) | Minimal level of logging for Cloud Funcion. | `string` | `"ERROR"` | no |
-| <a name="input_object_storage"></a> [object\_storage](#input\_object\_storage) | Trigger type of object storage. | <pre>object({<br>    bucket_id    = string<br>    create       = bool<br>    update       = bool<br>    delete       = bool<br>    batch_cutoff = number<br>    batch_size   = number<br>  })</pre> | <pre>{<br>  "batch_cutoff": 1,<br>  "batch_size": 1,<br>  "bucket_id": "yandex-cloud-nnn",<br>  "create": true,<br>  "delete": true,<br>  "update": true<br>}</pre> | no |
-| <a name="input_policy"></a> [policy](#input\_policy) | List definition for Yandex Cloud Function scaling policies. | `map(any)` | <pre>{<br>  "tag": "$latest",<br>  "zone_instances_limit": 3,<br>  "zone_requests_limit": 100<br>}</pre> | no |
+| <a name="input_mount_bucket"></a> [mount\_bucket](#input\_mount\_bucket) | Mount bucket (true) or not (false). If `true` section `storage_mounts{}` should be defined. | `bool` | `false` | no |
+| <a name="input_network_id"></a> [network\_id](#input\_network\_id) | Network id for the Cloud Function. | `string` | `null` | no |
+| <a name="input_object_storage"></a> [object\_storage](#input\_object\_storage) | Trigger type of object storage. | <pre>object({<br>    bucket_id    = string<br>    prefix       = optional(string)<br>    suffix       = optional(string)<br>    create       = optional(bool, true)<br>    update       = optional(bool, true)<br>    delete       = optional(bool, true)<br>    batch_cutoff = number<br>    batch_size   = number<br>  })</pre> | <pre>{<br>  "batch_cutoff": 1,<br>  "batch_size": 1,<br>  "bucket_id": null<br>}</pre> | no |
+| <a name="input_public_access"></a> [public\_access](#input\_public\_access) | Making Cloud Function public (true) or not (false). | `bool` | `false` | no |
 | <a name="input_runtime"></a> [runtime](#input\_runtime) | Runtime for Yandex Cloud Function. | `string` | `"bash-2204"` | no |
+| <a name="input_scaling_policy"></a> [scaling\_policy](#input\_scaling\_policy) | List definition for Yandex Cloud Function scaling policies. | `map(any)` | <pre>{<br>  "tag": "$latest",<br>  "zone_instances_limit": 3,<br>  "zone_requests_limit": 100<br>}</pre> | no |
+| <a name="input_storage_mounts"></a> [storage\_mounts](#input\_storage\_mounts) | Mounting S3 Bucket. | <pre>object({<br>    mount_point_name = string<br>    bucket           = string<br>    prefix           = optional(string)<br>    read_only        = optional(bool, true)<br>  })</pre> | <pre>{<br>  "bucket": null,<br>  "mount_point_name": "yc-function"<br>}</pre> | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags for Cloud Function. | `list(string)` | <pre>[<br>  "yc_tag"<br>]</pre> | no |
-| <a name="input_timer"></a> [timer](#input\_timer) | Trigger type of timer. | <pre>object({<br>    cron_expression = string<br>  })</pre> | <pre>{<br>  "cron_expression": "*/15 * ? * * *"<br>}</pre> | no |
+| <a name="input_timer"></a> [timer](#input\_timer) | Trigger type of timer. | <pre>object({<br>    cron_expression = optional(string, "*/30 * ? * * *")<br>    payload         = optional(string)<br>  })</pre> | <pre>{<br>  "cron_expression": "*/5 * ? * * *",<br>  "payload": null<br>}</pre> | no |
 | <a name="input_use_existing_log_group"></a> [use\_existing\_log\_group](#input\_use\_existing\_log\_group) | Use existing logging group (true) or not (false).<br>    If `true` parameters `existing_log_group_id` must be set. | `bool` | `false` | no |
 | <a name="input_use_existing_sa"></a> [use\_existing\_sa](#input\_use\_existing\_sa) | Use existing service accounts (true) or not (false).<br>    If `true` parameters `existing_service_account_id` must be set. | `bool` | `false` | no |
 | <a name="input_user_hash"></a> [user\_hash](#input\_user\_hash) | User-defined string for current function version.<br>    User must change this string any times when function changed. <br>    Function will be updated when hash is changed." | `string` | `"yc-defined-string-for-tf-module"` | no |
