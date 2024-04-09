@@ -23,13 +23,12 @@ variable "user_hash" {
 }
 
 variable "scaling_policy" {
-  description = "Map definition for Yandex Cloud Function scaling policies."
-  type        = map(any)
-  default = {
-    tag                  = "$latest"
-    zone_instances_limit = 3
-    zone_requests_limit  = 100
-  }
+  description = "Yandex Cloud Function scaling policies."
+  type = list(object({
+    tag                  = string
+    zone_instances_limit = number
+    zone_requests_limit  = number
+  }))
 }
 
 variable "existing_service_account_name" {
@@ -103,12 +102,6 @@ variable "choosing_trigger_type" {
     condition     = contains(["logging", "timer", "object_storage", "message_queue"], var.choosing_trigger_type)
     error_message = "Trigger type should be logging, timer, object_storage or message_queue."
   }
-}
-
-variable "attaching_vpc" {
-  description = "Whether to use vpc (true) or not (false). If `true` parameters `network_id` must be set."
-  type        = bool
-  default     = false
 }
 
 variable "network_id" {

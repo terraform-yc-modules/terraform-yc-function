@@ -112,7 +112,7 @@ resource "yandex_function" "yc_function" {
     }
   }
   connectivity {
-    network_id = var.attaching_vpc == false ? "" : var.network_id
+    network_id = var.network_id != null ? var.network_id : ""
   }
 
   secrets {
@@ -206,9 +206,13 @@ resource "yandex_function_trigger" "yc_trigger" {
 
 resource "yandex_function_scaling_policy" "yc_scaling_policy" {
   function_id = yandex_function.yc_function.id
-  policy {
-    tag                  = var.scaling_policy.tag
-    zone_instances_limit = var.scaling_policy.zone_instances_limit
-    zone_requests_limit  = var.scaling_policy.zone_requests_limit
+
+  dynamic "policy" {
+    for_each = var.scaling_policy
+    content {
+      tag                  = policy.value.tag
+      zone_instances_limit = policy.value.zone_instances_limit
+      zone_requests_limit  = policy.value.zone_requests_limit
+    }
   }
 }

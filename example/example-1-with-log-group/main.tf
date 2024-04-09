@@ -13,11 +13,11 @@ module "cloud_function" {
   # }
 
   # Cloud Function Scaling Policy Definition
-  scaling_policy = {
-    tag                  = "$latest"
-    zone_instances_limit = 3
-    zone_requests_limit  = 100
-  }
+  scaling_policy = [{
+    tag                  = "yc_tag"
+    zone_instances_limit = 20
+    zone_requests_limit  = 20
+  }]
 
   # Cloud Function Trigger Definition
   choosing_trigger_type = "logging"

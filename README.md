@@ -49,7 +49,7 @@ resource "yandex_function" "yc_function" {
     }
   }
   connectivity {
-    network_id = var.attaching_vpc == false ? "" : var.network_id
+    network_id = var.network_id != null ? var.network_id : ""
   }
 
   secrets {
@@ -62,15 +62,15 @@ resource "yandex_function" "yc_function" {
   dynamic "async_invocation" {
     for_each = var.use_async_invocation == false ? [] : [yandex_iam_service_account.default_cloud_function_sa[0].id]
     content {
-      retries_count = var.retries_count
+      retries_count      = var.retries_count
       service_account_id = local.create_sa ? var.existing_service_account_id : yandex_iam_service_account.default_cloud_function_sa[0].id
       ymq_failure_target {
         service_account_id = local.create_sa ? var.existing_service_account_id : yandex_iam_service_account.default_cloud_function_sa[0].id
-        arn = var.ymq_failure_target
+        arn                = var.ymq_failure_target
       }
       ymq_success_target {
         service_account_id = local.create_sa ? var.existing_service_account_id : yandex_iam_service_account.default_cloud_function_sa[0].id
-        arn = var.ymq_success_target
+        arn                = var.ymq_success_target
       }
     }
   }
@@ -90,10 +90,14 @@ Define the policy `tag`, `zone_instances_limit` and `zone_requests_limit`.
 ```
 resource "yandex_function_scaling_policy" "yc_scaling_policy" {
   function_id = yandex_function.yc_function.id
-  policy {
-    tag                  = var.scaling_policy.tag
-    zone_instances_limit = var.scaling_policy.zone_instances_limit
-    zone_requests_limit  = var.scaling_policy.zone_requests_limit
+
+  dynamic "policy" {
+    for_each = var.scaling_policy
+    content {
+      tag = policy.value.tag
+      zone_instances_limit = policy.value.zone_instances_limit
+      zone_requests_limit = policy.value.zone_requests_limit
+    }
   }
 }
 ```
@@ -184,13 +188,13 @@ module "cloud_function" {
   lockbox_secret_value = var.lockbox_secret_value
 
   zip_filename = "../../handler.zip"
-  
+
   # Cloud Function Scaling Policy Definition
-  scaling_policy = {
-    tag                  = "$latest"
-    zone_instances_limit = 3
-    zone_requests_limit  = 100
-  }
+  scaling_policy = [{
+    tag = "yc_tag"
+    zone_instances_limit = 20
+    zone_requests_limit = 20
+  }]
 
   # Cloud Function Trigger Definition
   choosing_trigger_type = "logging"
@@ -262,7 +266,6 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_attaching_vpc"></a> [attaching\_vpc](#input\_attaching\_vpc) | Whether to use vpc (true) or not (false). If `true` parameters `network_id` must be set. | `bool` | `false` | no |
 | <a name="input_choosing_trigger_type"></a> [choosing\_trigger\_type](#input\_choosing\_trigger\_type) | Choosing type for cloud function trigger | `string` | n/a | yes |
 | <a name="input_entrypoint"></a> [entrypoint](#input\_entrypoint) | Entrypoint for Yandex Cloud Function. | `string` | `"handler.sh"` | no |
 | <a name="input_environment_variable"></a> [environment\_variable](#input\_environment\_variable) | Function's environment variable in which secret's value will be stored. | `string` | `"ENV_VARIABLE"` | no |
@@ -283,7 +286,7 @@ No modules.
 | <a name="input_public_access"></a> [public\_access](#input\_public\_access) | Making Cloud Function public (true) or not (false). | `bool` | `false` | no |
 | <a name="input_retries_count"></a> [retries\_count](#input\_retries\_count) | Maximum number of retries for async invocation. | `number` | `3` | no |
 | <a name="input_runtime"></a> [runtime](#input\_runtime) | Runtime for Yandex Cloud Function. | `string` | `"bash-2204"` | no |
-| <a name="input_scaling_policy"></a> [scaling\_policy](#input\_scaling\_policy) | Map definition for Yandex Cloud Function scaling policies. | `map(any)` | <pre>{<br>  "tag": "$latest",<br>  "zone_instances_limit": 3,<br>  "zone_requests_limit": 100<br>}</pre> | no |
+| <a name="input_scaling_policy"></a> [scaling\_policy](#input\_scaling\_policy) | Yandex Cloud Function scaling policies. | <pre>list(object({<br>    tag                  = string<br>    zone_instances_limit = number<br>    zone_requests_limit  = number<br>  }))</pre> | n/a | yes |
 | <a name="input_storage_mounts"></a> [storage\_mounts](#input\_storage\_mounts) | Mounting S3 Bucket. | <pre>object({<br>    mount_point_name = string<br>    bucket           = string<br>    prefix           = optional(string)<br>    read_only        = optional(bool, true)<br>  })</pre> | <pre>{<br>  "bucket": null,<br>  "mount_point_name": "yc-function"<br>}</pre> | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags for Cloud Function. | `list(string)` | <pre>[<br>  "yc_tag"<br>]</pre> | no |
 | <a name="input_timer"></a> [timer](#input\_timer) | Trigger type of timer. | <pre>object({<br>    cron_expression = optional(string, "*/30 * ? * * *")<br>    payload         = optional(string)<br>  })</pre> | <pre>{<br>  "cron_expression": "*/5 * ? * * *",<br>  "payload": null<br>}</pre> | no |
