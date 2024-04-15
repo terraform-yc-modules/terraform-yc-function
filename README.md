@@ -13,7 +13,7 @@ Notes:
 - you can use existing `log_group_id` or create new loggging group
 - lockbox secret is used by default for the function
 - you should use environment variables or tfvars-files to redefine `lockbox_secret_key` and `lockbox_secret_value`
-- you should create NAT gateway first, if you'd like to try Cloud Function's VPC integration. Then `attaching_vpc` variable should be defined
+- you should create NAT gateway first, if you'd like to try Cloud Function's VPC integration. Variable `network_id` should be not null
 - you can mount S3 bucket to the function. Variable `mount_bucket` and section `storage_mounts` should be defined
 - you can use asynchronous invocation to message queue for the Cloud Function. Variable `use_async_invocation` and `ymq_success_target`, `ymq_failure_target` must be defined.
 
@@ -281,7 +281,7 @@ No modules.
 | <a name="input_message_queue"></a> [message\_queue](#input\_message\_queue) | Trigger type of message queue. | <pre>object({<br>    queue_id           = string<br>    service_account_id = optional(string)<br>    batch_cutoff       = number<br>    batch_size         = number<br>    visibility_timeout = optional(number, 600)<br>  })</pre> | <pre>{<br>  "batch_cutoff": 1,<br>  "batch_size": 1,<br>  "queue_id": null,<br>  "service_account_id": null<br>}</pre> | no |
 | <a name="input_min_level"></a> [min\_level](#input\_min\_level) | Minimal level of logging for Cloud Funcion. | `string` | `"ERROR"` | no |
 | <a name="input_mount_bucket"></a> [mount\_bucket](#input\_mount\_bucket) | Mount bucket (true) or not (false). If `true` section `storage_mounts{}` should be defined. | `bool` | `false` | no |
-| <a name="input_network_id"></a> [network\_id](#input\_network\_id) | Network id for the Cloud Function. | `string` | `null` | no |
+| <a name="input_network_id"></a> [network\_id](#input\_network\_id) | Cloud Function's network id for VPC integration. | `string` | `null` | no |
 | <a name="input_object_storage"></a> [object\_storage](#input\_object\_storage) | Trigger type of object storage. | <pre>object({<br>    bucket_id    = string<br>    prefix       = optional(string)<br>    suffix       = optional(string)<br>    create       = optional(bool, true)<br>    update       = optional(bool, true)<br>    delete       = optional(bool, true)<br>    batch_cutoff = number<br>    batch_size   = number<br>  })</pre> | <pre>{<br>  "batch_cutoff": 1,<br>  "batch_size": 1,<br>  "bucket_id": null<br>}</pre> | no |
 | <a name="input_public_access"></a> [public\_access](#input\_public\_access) | Making Cloud Function public (true) or not (false). | `bool` | `false` | no |
 | <a name="input_retries_count"></a> [retries\_count](#input\_retries\_count) | Maximum number of retries for async invocation. | `number` | `3` | no |

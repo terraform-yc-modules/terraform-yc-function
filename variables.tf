@@ -105,7 +105,7 @@ variable "choosing_trigger_type" {
 }
 
 variable "network_id" {
-  description = "Network id for the Cloud Function."
+  description = "Cloud Function's network id for VPC integration."
   type        = string
   default     = null # "enp9rm1debn7usfmtlnv"
 }
