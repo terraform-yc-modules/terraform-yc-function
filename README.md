@@ -24,7 +24,7 @@ Notes:
 ```
 resource "yandex_function" "yc_function" {
   name               = "yc-function-example-${random_string.unique_id.result}"
-  description        = "YC Cloud Function"
+  description        = "Cloud function from tf-module terraform-yc-function with scaling policy and specific trigger type yc-function-trigger."
   user_hash          = var.user_hash
   runtime            = var.runtime
   entrypoint         = var.entrypoint
@@ -43,7 +43,7 @@ resource "yandex_function" "yc_function" {
   }
 
   dynamic "storage_mounts" {
-    for_each = var.mount_bucket == false ? [] : tolist(yandex_iam_service_account.default_cloud_function_sa[0].id)
+    for_each = var.mount_bucket != true ? [] : tolist(1)
     content {
       mount_point_name = var.storage_mounts.mount_point_name
       bucket           = var.storage_mounts.bucket
@@ -63,7 +63,7 @@ resource "yandex_function" "yc_function" {
   }
 
   dynamic "async_invocation" {
-    for_each = var.use_async_invocation == false ? [] : [yandex_iam_service_account.default_cloud_function_sa[0].id]
+    for_each = var.use_async_invocation != true ? [] : tolist(1)
     content {
       retries_count      = var.retries_count
       service_account_id = local.create_sa ? var.existing_service_account_id : yandex_iam_service_account.default_cloud_function_sa[0].id
@@ -97,9 +97,9 @@ resource "yandex_function_scaling_policy" "yc_scaling_policy" {
   dynamic "policy" {
     for_each = var.scaling_policy
     content {
-      tag = policy.value.tag
+      tag                  = policy.value.tag
       zone_instances_limit = policy.value.zone_instances_limit
-      zone_requests_limit = policy.value.zone_requests_limit
+      zone_requests_limit  = policy.value.zone_requests_limit
     }
   }
 }
@@ -123,7 +123,7 @@ Notes:
 ```
 resource "yandex_function_trigger" "yc_trigger" {
   name        = "yc-function-trigger-${random_string.unique_id.result}"
-  description = "YC Cloud Function Trigger"
+  description = "Specific cloud function trigger type yc-function-trigger for cloud function yc-function-example."
 
   dynamic "logging" {
     for_each = var.choosing_trigger_type == "logging" ? [yandex_function.yc_function.id] : []
