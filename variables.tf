@@ -7,7 +7,7 @@ resource "random_string" "unique_id" {
 }
 
 variable "tags" {
-  description = "Tags for Cloud Function."
+  description = "List of tags for cloud function yc-function-example."
   type        = list(string)
   default     = ["yc_tag"]
 }
@@ -23,7 +23,7 @@ variable "user_hash" {
 }
 
 variable "scaling_policy" {
-  description = "Yandex Cloud Function scaling policies."
+  description = "List of scaling policies for cloud function yc-function-example."
   type = list(object({
     tag                  = string
     zone_instances_limit = number
@@ -53,24 +53,24 @@ variable "use_existing_sa" {
 }
 
 variable "folder_id" {
-  description = "The ID of the folder that the Cloud Function belongs to."
+  description = "The ID of the folder that the cloud function yc-function-example belongs to."
   type        = string
   default     = null
 }
 variable "runtime" {
-  description = "Runtime for Yandex Cloud Function."
+  description = "Runtime for cloud function yc-function-example."
   type        = string
   default     = "bash-2204"
 }
 
 variable "entrypoint" {
-  description = "Entrypoint for Yandex Cloud Function."
+  description = "Entrypoint for cloud function yc-function-example."
   type        = string
   default     = "handler.sh"
 }
 
 variable "memory" {
-  description = "Memory in megabytes for Yandex Cloud Function."
+  description = "Memory in megabytes for cloud function yc-function-example."
   type        = number
   default     = 128
 
@@ -84,19 +84,19 @@ variable "memory" {
 }
 
 variable "execution_timeout" {
-  description = "Execution timeout in seconds for Yandex Cloud Function."
+  description = "Execution timeout in seconds for cloud function yc-function-example."
   type        = number
   default     = 10
 }
 
 variable "zip_filename" {
-  description = "Filename to zip archive for the version."
+  description = "Filename to zip archive for the version of cloud function's code."
   type        = string
   default     = "../../handler.zip"
 }
 
 variable "choosing_trigger_type" {
-  description = "Choosing type for cloud function trigger"
+  description = "Choosing type for cloud function trigger."
   type        = string
   validation {
     condition     = contains(["logging", "timer", "object_storage", "message_queue"], var.choosing_trigger_type)
@@ -105,7 +105,7 @@ variable "choosing_trigger_type" {
 }
 
 variable "network_id" {
-  description = "Cloud Function's network id for VPC integration."
+  description = "Cloud function's network id for VPC integration."
   type        = string
   default     = null # "enp9rm1debn7usfmtlnv"
 }
@@ -192,18 +192,18 @@ variable "existing_log_group_id" {
 }
 
 variable "min_level" {
-  description = "Minimal level of logging for Cloud Funcion."
+  description = "Minimal level of logging for cloud function yc-function-example."
   type        = string
   default     = "ERROR"
 }
 
 variable "lockbox_secret_key" {
-  description = "Lockbox secret key."
+  description = "Lockbox secret key for cloud function yc-function-example."
   type        = string
 }
 
 variable "lockbox_secret_value" {
-  description = "Lockbox secret value."
+  description = "Lockbox secret value for cloud function yc-function-example."
   type        = string
 }
 
@@ -214,7 +214,7 @@ variable "environment_variable" {
 }
 
 variable "public_access" {
-  description = "Making Cloud Function public (true) or not (false)."
+  description = "Making cloud function public (true) or not (false)."
   type        = bool
   default     = false
 }
@@ -226,7 +226,7 @@ variable "mount_bucket" {
 }
 
 variable "storage_mounts" {
-  description = "Mounting S3 Bucket."
+  description = "Mounting s3 bucket."
   type = object({
     mount_point_name = string
     bucket           = string
