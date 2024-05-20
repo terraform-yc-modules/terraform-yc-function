@@ -225,5 +225,4 @@ export TF_VAR_lockbox_secret_value=<yc-value>
 
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
-
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
