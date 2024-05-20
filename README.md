@@ -225,4 +225,86 @@ export TF_VAR_lockbox_secret_value=<yc-value>
 
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
+## Requirements
+
+| Name | Version |
+|------|---------|
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.0.0 |
+| <a name="requirement_random"></a> [random](#requirement\_random) | > 3.3 |
+| <a name="requirement_time"></a> [time](#requirement\_time) | > 0.9 |
+| <a name="requirement_yandex"></a> [yandex](#requirement\_yandex) | >= 0.107.0 |
+
+## Providers
+
+| Name | Version |
+|------|---------|
+| <a name="provider_random"></a> [random](#provider\_random) | 3.6.1 |
+| <a name="provider_time"></a> [time](#provider\_time) | 0.11.1 |
+| <a name="provider_yandex"></a> [yandex](#provider\_yandex) | 0.118.0 |
+
+## Modules
+
+No modules.
+
+## Resources
+
+| Name | Type |
+|------|------|
+| [random_string.unique_id](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string) | resource |
+| [time_sleep.wait_for_iam](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/sleep) | resource |
+| [yandex_function.yc_function](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/function) | resource |
+| [yandex_function_iam_binding.function_iam](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/function_iam_binding) | resource |
+| [yandex_function_scaling_policy.yc_scaling_policy](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/function_scaling_policy) | resource |
+| [yandex_function_trigger.yc_trigger](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/function_trigger) | resource |
+| [yandex_iam_service_account.default_cloud_function_sa](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/iam_service_account) | resource |
+| [yandex_lockbox_secret.yc_secret](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/lockbox_secret) | resource |
+| [yandex_lockbox_secret_version.yc_version](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/lockbox_secret_version) | resource |
+| [yandex_logging_group.default_log_group](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/logging_group) | resource |
+| [yandex_resourcemanager_folder_iam_binding.editor](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/resourcemanager_folder_iam_binding) | resource |
+| [yandex_resourcemanager_folder_iam_binding.invoker](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/resourcemanager_folder_iam_binding) | resource |
+| [yandex_resourcemanager_folder_iam_binding.lockbox_payload_viewer](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/resources/resourcemanager_folder_iam_binding) | resource |
+| [yandex_client_config.client](https://registry.terraform.io/providers/yandex-cloud/yandex/latest/docs/data-sources/client_config) | data source |
+
+## Inputs
+
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|:--------:|
+| <a name="input_choosing_trigger_type"></a> [choosing\_trigger\_type](#input\_choosing\_trigger\_type) | Choosing type for cloud function trigger. | `string` | n/a | yes |
+| <a name="input_entrypoint"></a> [entrypoint](#input\_entrypoint) | Entrypoint for cloud function yc-function-example. | `string` | `"handler.sh"` | no |
+| <a name="input_environment_variable"></a> [environment\_variable](#input\_environment\_variable) | Function's environment variable in which secret's value will be stored. | `string` | `"ENV_VARIABLE"` | no |
+| <a name="input_execution_timeout"></a> [execution\_timeout](#input\_execution\_timeout) | Execution timeout in seconds for cloud function yc-function-example. | `number` | `10` | no |
+| <a name="input_existing_log_group_id"></a> [existing\_log\_group\_id](#input\_existing\_log\_group\_id) | Existing logging group id. | `string` | `null` | no |
+| <a name="input_existing_service_account_id"></a> [existing\_service\_account\_id](#input\_existing\_service\_account\_id) | Existing IAM service account id. | `string` | `null` | no |
+| <a name="input_existing_service_account_name"></a> [existing\_service\_account\_name](#input\_existing\_service\_account\_name) | Existing IAM service account name. | `string` | `null` | no |
+| <a name="input_folder_id"></a> [folder\_id](#input\_folder\_id) | The ID of the folder that the cloud function yc-function-example belongs to. | `string` | `null` | no |
+| <a name="input_lockbox_secret_key"></a> [lockbox\_secret\_key](#input\_lockbox\_secret\_key) | Lockbox secret key for cloud function yc-function-example. | `string` | n/a | yes |
+| <a name="input_lockbox_secret_value"></a> [lockbox\_secret\_value](#input\_lockbox\_secret\_value) | Lockbox secret value for cloud function yc-function-example. | `string` | n/a | yes |
+| <a name="input_logging"></a> [logging](#input\_logging) | Trigger type of logging. | <pre>object({<br>    group_id       = string<br>    resource_ids   = optional(list(string))<br>    resource_types = optional(list(string), ["serverless.function"])<br>    levels         = optional(list(string), ["INFO"])<br>    batch_cutoff   = number<br>    batch_size     = number<br>    stream_names   = optional(list(string))<br>  })</pre> | <pre>{<br>  "batch_cutoff": 1,<br>  "batch_size": 1,<br>  "group_id": null<br>}</pre> | no |
+| <a name="input_memory"></a> [memory](#input\_memory) | Memory in megabytes for cloud function yc-function-example. | `number` | `128` | no |
+| <a name="input_message_queue"></a> [message\_queue](#input\_message\_queue) | Trigger type of message queue. | <pre>object({<br>    queue_id           = string<br>    service_account_id = optional(string)<br>    batch_cutoff       = number<br>    batch_size         = number<br>    visibility_timeout = optional(number, 600)<br>  })</pre> | <pre>{<br>  "batch_cutoff": 1,<br>  "batch_size": 1,<br>  "queue_id": null,<br>  "service_account_id": null<br>}</pre> | no |
+| <a name="input_min_level"></a> [min\_level](#input\_min\_level) | Minimal level of logging for cloud function yc-function-example. | `string` | `"ERROR"` | no |
+| <a name="input_mount_bucket"></a> [mount\_bucket](#input\_mount\_bucket) | Mount bucket (true) or not (false). If `true` section `storage_mounts{}` should be defined. | `bool` | `false` | no |
+| <a name="input_network_id"></a> [network\_id](#input\_network\_id) | Cloud function's network id for VPC integration. | `string` | `null` | no |
+| <a name="input_object_storage"></a> [object\_storage](#input\_object\_storage) | Trigger type of object storage. | <pre>object({<br>    bucket_id    = string<br>    prefix       = optional(string)<br>    suffix       = optional(string)<br>    create       = optional(bool, true)<br>    update       = optional(bool, true)<br>    delete       = optional(bool, true)<br>    batch_cutoff = number<br>    batch_size   = number<br>  })</pre> | <pre>{<br>  "batch_cutoff": 1,<br>  "batch_size": 1,<br>  "bucket_id": null<br>}</pre> | no |
+| <a name="input_public_access"></a> [public\_access](#input\_public\_access) | Making cloud function public (true) or not (false). | `bool` | `false` | no |
+| <a name="input_retries_count"></a> [retries\_count](#input\_retries\_count) | Maximum number of retries for async invocation. | `number` | `3` | no |
+| <a name="input_runtime"></a> [runtime](#input\_runtime) | Runtime for cloud function yc-function-example. | `string` | `"bash-2204"` | no |
+| <a name="input_scaling_policy"></a> [scaling\_policy](#input\_scaling\_policy) | List of scaling policies for cloud function yc-function-example. | <pre>list(object({<br>    tag                  = string<br>    zone_instances_limit = number<br>    zone_requests_limit  = number<br>  }))</pre> | n/a | yes |
+| <a name="input_storage_mounts"></a> [storage\_mounts](#input\_storage\_mounts) | Mounting s3 bucket. | <pre>object({<br>    mount_point_name = string<br>    bucket           = string<br>    prefix           = optional(string)<br>    read_only        = optional(bool, true)<br>  })</pre> | <pre>{<br>  "bucket": null,<br>  "mount_point_name": "yc-function"<br>}</pre> | no |
+| <a name="input_tags"></a> [tags](#input\_tags) | List of tags for cloud function yc-function-example. | `list(string)` | <pre>[<br>  "yc_tag"<br>]</pre> | no |
+| <a name="input_timer"></a> [timer](#input\_timer) | Trigger type of timer. | <pre>object({<br>    cron_expression = optional(string, "*/30 * ? * * *")<br>    payload         = optional(string)<br>  })</pre> | <pre>{<br>  "cron_expression": "*/5 * ? * * *",<br>  "payload": null<br>}</pre> | no |
+| <a name="input_use_async_invocation"></a> [use\_async\_invocation](#input\_use\_async\_invocation) | Use asynchronous invocation to message queue (true) or not (false). If `true`, parameters `ymq_success_target` and `ymq_failure_target` must be set. | `bool` | `false` | no |
+| <a name="input_use_existing_log_group"></a> [use\_existing\_log\_group](#input\_use\_existing\_log\_group) | Use existing logging group (true) or not (false).<br>    If `true` parameters `existing_log_group_id` must be set. | `bool` | `false` | no |
+| <a name="input_use_existing_sa"></a> [use\_existing\_sa](#input\_use\_existing\_sa) | Use existing service accounts (true) or not (false).<br>    If `true` parameters `existing_service_account_id` must be set. | `bool` | `false` | no |
+| <a name="input_user_hash"></a> [user\_hash](#input\_user\_hash) | User-defined string for current function version.<br>    User must change this string any times when function changed. <br>    Function will be updated when hash is changed." | `string` | `"yc-defined-string-for-tf-module"` | no |
+| <a name="input_ymq_failure_target"></a> [ymq\_failure\_target](#input\_ymq\_failure\_target) | Target for unsuccessful async invocation. | `string` | `null` | no |
+| <a name="input_ymq_success_target"></a> [ymq\_success\_target](#input\_ymq\_success\_target) | Target for successful async invocation. | `string` | `null` | no |
+| <a name="input_zip_filename"></a> [zip\_filename](#input\_zip\_filename) | Filename to zip archive for the version of cloud function's code. | `string` | `"../../handler.zip"` | no |
+
+## Outputs
+
+| Name | Description |
+|------|-------------|
+| <a name="output_function_id"></a> [function\_id](#output\_function\_id) | Yandex cloud function ID. |
+| <a name="output_function_name"></a> [function\_name](#output\_function\_name) | Yandex cloud function name. |
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
