@@ -23,8 +23,8 @@ Notes:
 
 ```
 resource "yandex_function" "yc_function" {
-  name               = "yc-function-example-${random_string.unique_id.result}"
-  description        = "Cloud function from tf-module terraform-yc-function with scaling policy and specific trigger type yc-function-trigger."
+  name               = coalesce(var.yc_function_name, "yc-function-example-${random_string.unique_id.result}")
+  description        = coalesce(var.yc_function_description, "Cloud function from tf-module terraform-yc-function with scaling policy and specific trigger type yc-function-trigger.")
   user_hash          = var.user_hash
   runtime            = var.runtime
   entrypoint         = var.entrypoint
@@ -32,6 +32,7 @@ resource "yandex_function" "yc_function" {
   execution_timeout  = var.execution_timeout
   service_account_id = local.create_sa ? var.existing_service_account_id : yandex_iam_service_account.default_cloud_function_sa[0].id
   tags               = var.tags
+  environment        = var.environment
 
   content {
     zip_filename = var.zip_filename
@@ -119,9 +120,11 @@ Only one option is acceptable.
 Notes:
 - you can use existing `service_account_id` or create new SA with bindings
 - it's possible to change default values in variables for different trigger types
+- you can optionally create trigger for Cloud Function using variable `create_trigger`
 
 ```
 resource "yandex_function_trigger" "yc_trigger" {
+  count       = var.create_trigger ? 1 : 0
   name        = "yc-function-trigger-${random_string.unique_id.result}"
   description = "Specific cloud function trigger type yc-function-trigger for cloud function yc-function-example."
 
@@ -192,21 +195,40 @@ module "cloud_function" {
 
   zip_filename = "../../handler.zip"
 
+  # storage_mounts = {
+  #   mount_point_name = "yc-function"
+  #   bucket           = "yandex-cloud-nnn"
+  # }
+
   # Cloud Function Scaling Policy Definition
   scaling_policy = [{
-    tag = "yc_tag"
+    tag                  = "yc_tag"
     zone_instances_limit = 20
-    zone_requests_limit = 20
+    zone_requests_limit  = 20
   }]
 
   # Cloud Function Trigger Definition
-  choosing_trigger_type = "logging"
+  choosing_trigger_type = "" # "logging"
 
   logging = {
     group_id     = "e23moaejmq8m74tssfu9"
     batch_cutoff = 1
     batch_size   = 1
   }
+
+  # timer = {}
+
+  # object_storage = {
+  #   bucket_id    = "yandex-cloud-nnn"
+  #   batch_cutoff = 1
+  #   batch_size   = 1
+  # }
+
+  # message_queue = {
+  #   queue_id     = "yrn:yc:ymq:ru-central1:b1gfl7u3a9ahaamt3ore:anana"
+  #   batch_cutoff = 1
+  #   batch_size   = 1
+  # }
 }
 ```
 
@@ -238,9 +260,9 @@ export TF_VAR_lockbox_secret_value=<yc-value>
 
 | Name | Version |
 |------|---------|
-| <a name="provider_random"></a> [random](#provider\_random) | 3.6.1 |
-| <a name="provider_time"></a> [time](#provider\_time) | 0.11.1 |
-| <a name="provider_yandex"></a> [yandex](#provider\_yandex) | 0.118.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | 3.6.2 |
+| <a name="provider_time"></a> [time](#provider\_time) | 0.11.2 |
+| <a name="provider_yandex"></a> [yandex](#provider\_yandex) | 0.123.0 |
 
 ## Modules
 
@@ -270,7 +292,9 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_choosing_trigger_type"></a> [choosing\_trigger\_type](#input\_choosing\_trigger\_type) | Choosing type for cloud function trigger. | `string` | n/a | yes |
+| <a name="input_create_trigger"></a> [create\_trigger](#input\_create\_trigger) | Create trigger for Cloud Function (true) or not (false).<br>    If `true` parameter `choosing_trigger_type` must not be empty string.<br>    If `false` trigger `yc_trigger` will not be created for Cloud Function. | `bool` | `false` | no |
 | <a name="input_entrypoint"></a> [entrypoint](#input\_entrypoint) | Entrypoint for cloud function yc-function-example. | `string` | `"handler.sh"` | no |
+| <a name="input_environment"></a> [environment](#input\_environment) | A set of key/value environment variables for Yandex Cloud Function from tf-module | `map(string)` | <pre>{<br>  "name": "John",<br>  "surname": "Wick"<br>}</pre> | no |
 | <a name="input_environment_variable"></a> [environment\_variable](#input\_environment\_variable) | Function's environment variable in which secret's value will be stored. | `string` | `"ENV_VARIABLE"` | no |
 | <a name="input_execution_timeout"></a> [execution\_timeout](#input\_execution\_timeout) | Execution timeout in seconds for cloud function yc-function-example. | `number` | `10` | no |
 | <a name="input_existing_log_group_id"></a> [existing\_log\_group\_id](#input\_existing\_log\_group\_id) | Existing logging group id. | `string` | `null` | no |
@@ -297,6 +321,8 @@ No modules.
 | <a name="input_use_existing_log_group"></a> [use\_existing\_log\_group](#input\_use\_existing\_log\_group) | Use existing logging group (true) or not (false).<br>    If `true` parameters `existing_log_group_id` must be set. | `bool` | `false` | no |
 | <a name="input_use_existing_sa"></a> [use\_existing\_sa](#input\_use\_existing\_sa) | Use existing service accounts (true) or not (false).<br>    If `true` parameters `existing_service_account_id` must be set. | `bool` | `false` | no |
 | <a name="input_user_hash"></a> [user\_hash](#input\_user\_hash) | User-defined string for current function version.<br>    User must change this string any times when function changed. <br>    Function will be updated when hash is changed." | `string` | `"yc-defined-string-for-tf-module"` | no |
+| <a name="input_yc_function_description"></a> [yc\_function\_description](#input\_yc\_function\_description) | Custom Cloud Function description from tf-module | `string` | `"yc-custom-function-description"` | no |
+| <a name="input_yc_function_name"></a> [yc\_function\_name](#input\_yc\_function\_name) | Custom Cloud Function name from tf-module | `string` | `"yc-custom-function-name"` | no |
 | <a name="input_ymq_failure_target"></a> [ymq\_failure\_target](#input\_ymq\_failure\_target) | Target for unsuccessful async invocation. | `string` | `null` | no |
 | <a name="input_ymq_success_target"></a> [ymq\_success\_target](#input\_ymq\_success\_target) | Target for successful async invocation. | `string` | `null` | no |
 | <a name="input_zip_filename"></a> [zip\_filename](#input\_zip\_filename) | Filename to zip archive for the version of cloud function's code. | `string` | `"../../handler.zip"` | no |

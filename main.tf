@@ -83,8 +83,8 @@ resource "yandex_function_iam_binding" "function_iam" {
 }
 
 resource "yandex_function" "yc_function" {
-  name               = "yc-function-example-${random_string.unique_id.result}"
-  description        = "Cloud function from tf-module terraform-yc-function with scaling policy and specific trigger type yc-function-trigger."
+  name               = coalesce(var.yc_function_name, "yc-function-example-${random_string.unique_id.result}")
+  description        = coalesce(var.yc_function_description, "Cloud function from tf-module terraform-yc-function with scaling policy and specific trigger type yc-function-trigger.")
   user_hash          = var.user_hash
   runtime            = var.runtime
   entrypoint         = var.entrypoint
@@ -92,6 +92,7 @@ resource "yandex_function" "yc_function" {
   execution_timeout  = var.execution_timeout
   service_account_id = local.create_sa ? var.existing_service_account_id : yandex_iam_service_account.default_cloud_function_sa[0].id
   tags               = var.tags
+  environment        = var.environment
 
   content {
     zip_filename = var.zip_filename
@@ -147,6 +148,7 @@ resource "yandex_function" "yc_function" {
 }
 
 resource "yandex_function_trigger" "yc_trigger" {
+  count       = var.create_trigger ? 1 : 0
   name        = "yc-function-trigger-${random_string.unique_id.result}"
   description = "Specific cloud function trigger type yc-function-trigger for cloud function yc-function-example."
 

@@ -20,7 +20,7 @@ module "cloud_function" {
   }]
 
   # Cloud Function Trigger Definition
-  choosing_trigger_type = "logging"
+  choosing_trigger_type = "" # "logging"
 
   logging = {
     group_id     = "e23moaejmq8m74tssfu9"
