@@ -99,8 +99,8 @@ variable "choosing_trigger_type" {
   description = "Choosing type for cloud function trigger."
   type        = string
   validation {
-    condition     = contains(["logging", "timer", "object_storage", "message_queue"], var.choosing_trigger_type)
-    error_message = "Trigger type should be logging, timer, object_storage or message_queue."
+    condition     = contains(["logging", "timer", "object_storage", "message_queue", ""], var.choosing_trigger_type)
+    error_message = "Trigger type should be logging, timer, object_storage, message_queue or empty string."
   }
 }
 
@@ -261,4 +261,35 @@ variable "ymq_failure_target" {
   description = "Target for unsuccessful async invocation."
   type        = string
   default     = null # "yrn:yc:ymq:ru-central1:b1gdddu3a9appamt3aaa:ymq-failure"
+}
+
+variable "yc_function_name" {
+  description = "Custom Cloud Function name from tf-module"
+  type        = string
+  default     = "yc-custom-function-name"
+}
+
+variable "yc_function_description" {
+  description = "Custom Cloud Function description from tf-module"
+  type        = string
+  default     = "yc-custom-function-description"
+}
+
+variable "environment" {
+  description = "A set of key/value environment variables for Yandex Cloud Function from tf-module"
+  type        = map(string)
+  default = {
+    "name"    = "John"
+    "surname" = "Wick"
+  }
+}
+
+variable "create_trigger" {
+  description = <<EOF
+    Create trigger for Cloud Function (true) or not (false).
+    If `true` parameter `choosing_trigger_type` must not be empty string.
+    If `false` trigger `yc_trigger` will not be created for Cloud Function.
+  EOF
+  type        = bool
+  default     = false
 }
