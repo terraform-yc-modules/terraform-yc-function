@@ -5,7 +5,7 @@ module "cloud_function" {
   lockbox_secret_key   = var.lockbox_secret_key
   lockbox_secret_value = var.lockbox_secret_value
 
-  zip_filename = "../../handler.zip"
+  zip_filename = "handler.zip"
 
   # storage_mounts = {
   #   mount_point_name = "yc-function"
