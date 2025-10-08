@@ -38,5 +38,3 @@ module "cloud_function" {
     },
   ]
 }
-
-}

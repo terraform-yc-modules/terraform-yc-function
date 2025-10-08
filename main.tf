@@ -205,7 +205,7 @@ resource "yandex_function_trigger" "yc_trigger" {
 
   function {
     id                 = yandex_function.yc_function.id
-    tag                = tolist(yandex_function.yc_function.tags)[0]
+    tag                = try(tolist(yandex_function.yc_function.tags)[0], null)
     service_account_id = local.create_sa ? var.existing_service_account_id : yandex_iam_service_account.default_cloud_function_sa[0].id
   }
 
