@@ -123,6 +123,16 @@ resource "yandex_function" "yc_function" {
     environment_variable = var.environment_variable
   }
 
+  dynamic "secrets" {
+    for_each = var.existing_secrets
+    content {
+      id                   = secrets.value.id
+      key                  = secrets.value.key
+      version_id           = secrets.value.version_id
+      environment_variable = secrets.value.environment_variable
+    }
+  }
+
   dynamic "async_invocation" {
     for_each = var.use_async_invocation != true ? [] : tolist(1)
     content {
@@ -195,7 +205,7 @@ resource "yandex_function_trigger" "yc_trigger" {
 
   function {
     id                 = yandex_function.yc_function.id
-    tag                = yandex_function.yc_function.tags[0]
+    tag                = tolist(yandex_function.yc_function.tags)[0]
     service_account_id = local.create_sa ? var.existing_service_account_id : yandex_iam_service_account.default_cloud_function_sa[0].id
   }
 
