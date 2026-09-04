@@ -83,6 +83,47 @@ variable "memory" {
   }
 }
 
+variable "concurrency" {
+  description = "Maximum number of requests processed by one function instance. Null leaves the provider default unchanged."
+  type        = number
+  default     = null
+}
+
+variable "tmpfs_size" {
+  description = "Tmpfs size in megabytes. Must be at least 1024 MiB when set. Null leaves tmpfs disabled."
+  type        = number
+  default     = null
+
+  validation {
+    condition     = try(var.tmpfs_size >= 1024, true)
+    error_message = "tmpfs_size must be at least 1024 MiB when set."
+  }
+}
+
+variable "labels" {
+  description = "Labels to apply to the Cloud Function. Null preserves the provider default."
+  type        = map(string)
+  default     = null
+}
+
+variable "metadata_options" {
+  description = "Optional access modes for AWS and GCE metadata endpoints. Values: 0 (default), 1 (enabled), or 2 (disabled)."
+  type = object({
+    aws_v1_http_endpoint = optional(number, 0)
+    gce_http_endpoint    = optional(number, 0)
+  })
+  default = null
+
+  validation {
+    condition = try(
+      contains([0, 1, 2], var.metadata_options.aws_v1_http_endpoint) &&
+      contains([0, 1, 2], var.metadata_options.gce_http_endpoint),
+      true,
+    )
+    error_message = "metadata_options endpoint values must be 0 (default), 1 (enabled), or 2 (disabled)."
+  }
+}
+
 variable "execution_timeout" {
   description = "Execution timeout in seconds for cloud function yc-function-example."
   type        = number
@@ -247,6 +288,30 @@ variable "storage_mounts" {
   default = {
     mount_point_name = "yc-function"
     bucket           = null
+  }
+}
+
+variable "mounts" {
+  description = "Modern function mounts. Each mount must define exactly one of ephemeral_disk or object_storage. Cannot be used with mount_bucket/storage_mounts."
+  type = list(object({
+    name = string
+    mode = optional(string, "ro")
+    ephemeral_disk = optional(object({
+      size_gb       = number
+      block_size_kb = optional(number)
+    }))
+    object_storage = optional(object({
+      bucket = string
+      prefix = optional(string)
+    }))
+  }))
+  default = null
+
+  validation {
+    condition = alltrue([
+      for mount in coalesce(var.mounts, []) : (mount.ephemeral_disk == null) != (mount.object_storage == null)
+    ])
+    error_message = "Each mounts item must define exactly one of ephemeral_disk or object_storage."
   }
 }
 
