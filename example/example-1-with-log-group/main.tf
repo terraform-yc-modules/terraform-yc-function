@@ -12,6 +12,24 @@ module "cloud_function" {
   #   bucket           = "yandex-cloud-nnn"
   # }
 
+  # Modern mounts replace the deprecated storage_mounts block and also support
+  # ephemeral disks. Do not configure these together with storage_mounts.
+  # mounts = [{
+  #   name = "cache"
+  #   mode = "rw"
+  #   ephemeral_disk = {
+  #     size_gb = 1
+  #   }
+  # }]
+
+  # concurrency = 10
+  # tmpfs_size  = 1024
+  # labels       = { environment = "development" }
+  # metadata_options = {
+  #   aws_v1_http_endpoint = 2
+  #   gce_http_endpoint    = 2
+  # }
+
   # Cloud Function Scaling Policy Definition
   scaling_policy = [{
     tag                  = "yc_tag"

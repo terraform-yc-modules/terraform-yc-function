@@ -93,6 +93,9 @@ resource "yandex_function" "yc_function" {
   service_account_id = local.create_sa ? var.existing_service_account_id : yandex_iam_service_account.default_cloud_function_sa[0].id
   tags               = var.tags
   environment        = var.environment
+  concurrency        = var.concurrency
+  tmpfs_size         = var.tmpfs_size
+  labels             = var.labels
 
   content {
     zip_filename = var.zip_filename
@@ -112,6 +115,39 @@ resource "yandex_function" "yc_function" {
       read_only        = var.storage_mounts.read_only
     }
   }
+
+  dynamic "mounts" {
+    for_each = var.mounts == null ? [] : var.mounts
+    content {
+      name = mounts.value.name
+      mode = mounts.value.mode
+
+      dynamic "ephemeral_disk" {
+        for_each = mounts.value.ephemeral_disk == null ? [] : [mounts.value.ephemeral_disk]
+        content {
+          size_gb       = ephemeral_disk.value.size_gb
+          block_size_kb = ephemeral_disk.value.block_size_kb
+        }
+      }
+
+      dynamic "object_storage" {
+        for_each = mounts.value.object_storage == null ? [] : [mounts.value.object_storage]
+        content {
+          bucket = object_storage.value.bucket
+          prefix = object_storage.value.prefix
+        }
+      }
+    }
+  }
+
+  dynamic "metadata_options" {
+    for_each = var.metadata_options == null ? [] : [var.metadata_options]
+    content {
+      aws_v1_http_endpoint = metadata_options.value.aws_v1_http_endpoint
+      gce_http_endpoint    = metadata_options.value.gce_http_endpoint
+    }
+  }
+
   connectivity {
     network_id = var.network_id != null ? var.network_id : ""
   }
@@ -155,6 +191,13 @@ resource "yandex_function" "yc_function" {
     yandex_resourcemanager_folder_iam_binding.lockbox_payload_viewer,
     time_sleep.wait_for_iam
   ]
+
+  lifecycle {
+    precondition {
+      condition     = !(var.mount_bucket && var.mounts != null)
+      error_message = "mount_bucket/storage_mounts and mounts cannot be configured together. Migrate to mounts instead."
+    }
+  }
 }
 
 resource "yandex_function_trigger" "yc_trigger" {

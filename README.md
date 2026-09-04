@@ -5,7 +5,8 @@
 - Create cloud function with lockbox secret, list of scaling policies and specific trigger type.
 - Integration with VPC can be added to cloud function.
 - Options for creating service account and/or logging group for the function.
-- Mounting the bucket for cloud function.
+- Modern mounts for Object Storage or ephemeral disks, plus optional concurrency,
+  tmpfs, labels, and metadata-endpoint controls.
 
 
 ## Cloud Function Definition
@@ -17,7 +18,10 @@ Notes:
 - lockbox secret is used by default for the function
 - you should use environment variables or tfvars-files to redefine `lockbox_secret_key` and `lockbox_secret_value`
 - you should create NAT gateway first, if you'd like to try Cloud Function's VPC integration. Variable `network_id` should be not null
-- you can mount S3 bucket to the function. Variable `mount_bucket` and section `storage_mounts` should be defined
+- `mount_bucket` and `storage_mounts` remain supported for existing callers, but
+  are deprecated by the provider. Use `mounts` for new Object Storage mounts or
+  ephemeral disks. The old and new mount inputs cannot be configured together;
+  review the resulting function-version plan before migrating.
 - you can use asynchronous invocation to message queue for the Cloud Function. Variable `use_async_invocation` and `ymq_success_target`, `ymq_failure_target` must be defined.
 
 
@@ -254,15 +258,15 @@ export TF_VAR_lockbox_secret_value=<yc-value>
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.0.0 |
 | <a name="requirement_random"></a> [random](#requirement\_random) | > 3.3 |
 | <a name="requirement_time"></a> [time](#requirement\_time) | > 0.9 |
-| <a name="requirement_yandex"></a> [yandex](#requirement\_yandex) | >= 0.107.0 |
+| <a name="requirement_yandex"></a> [yandex](#requirement\_yandex) | >= 0.137.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_random"></a> [random](#provider\_random) | 3.7.2 |
-| <a name="provider_time"></a> [time](#provider\_time) | 0.13.1 |
-| <a name="provider_yandex"></a> [yandex](#provider\_yandex) | 0.162.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | 3.9.0 |
+| <a name="provider_time"></a> [time](#provider\_time) | 0.14.1 |
+| <a name="provider_yandex"></a> [yandex](#provider\_yandex) | 0.225.0 |
 
 ## Modules
 
@@ -292,6 +296,7 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_choosing_trigger_type"></a> [choosing\_trigger\_type](#input\_choosing\_trigger\_type) | Choosing type for cloud function trigger. | `string` | n/a | yes |
+| <a name="input_concurrency"></a> [concurrency](#input\_concurrency) | Maximum number of requests processed by one function instance. Null leaves the provider default unchanged. | `number` | `null` | no |
 | <a name="input_create_trigger"></a> [create\_trigger](#input\_create\_trigger) | Create trigger for Cloud Function (true) or not (false).<br/>    If `true` parameter `choosing_trigger_type` must not be empty string.<br/>    If `false` trigger `yc_trigger` will not be created for Cloud Function. | `bool` | `false` | no |
 | <a name="input_entrypoint"></a> [entrypoint](#input\_entrypoint) | Entrypoint for cloud function yc-function-example. | `string` | `"handler.sh"` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | A set of key/value environment variables for Yandex Cloud Function from tf-module | `map(string)` | <pre>{<br/>  "name": "John",<br/>  "surname": "Wick"<br/>}</pre> | no |
@@ -302,13 +307,16 @@ No modules.
 | <a name="input_existing_service_account_id"></a> [existing\_service\_account\_id](#input\_existing\_service\_account\_id) | Existing IAM service account id. | `string` | `null` | no |
 | <a name="input_existing_service_account_name"></a> [existing\_service\_account\_name](#input\_existing\_service\_account\_name) | Existing IAM service account name. | `string` | `null` | no |
 | <a name="input_folder_id"></a> [folder\_id](#input\_folder\_id) | The ID of the folder that the cloud function yc-function-example belongs to. | `string` | `null` | no |
+| <a name="input_labels"></a> [labels](#input\_labels) | Labels to apply to the Cloud Function. Null preserves the provider default. | `map(string)` | `null` | no |
 | <a name="input_lockbox_secret_key"></a> [lockbox\_secret\_key](#input\_lockbox\_secret\_key) | Lockbox secret key for cloud function yc-function-example. | `string` | n/a | yes |
 | <a name="input_lockbox_secret_value"></a> [lockbox\_secret\_value](#input\_lockbox\_secret\_value) | Lockbox secret value for cloud function yc-function-example. | `string` | n/a | yes |
 | <a name="input_logging"></a> [logging](#input\_logging) | Trigger type of logging. | <pre>object({<br/>    group_id       = string<br/>    resource_ids   = optional(list(string))<br/>    resource_types = optional(list(string), ["serverless.function"])<br/>    levels         = optional(list(string), ["INFO"])<br/>    batch_cutoff   = number<br/>    batch_size     = number<br/>    stream_names   = optional(list(string))<br/>  })</pre> | <pre>{<br/>  "batch_cutoff": 1,<br/>  "batch_size": 1,<br/>  "group_id": null<br/>}</pre> | no |
 | <a name="input_memory"></a> [memory](#input\_memory) | Memory in megabytes for cloud function yc-function-example. | `number` | `128` | no |
 | <a name="input_message_queue"></a> [message\_queue](#input\_message\_queue) | Trigger type of message queue. | <pre>object({<br/>    queue_id           = string<br/>    service_account_id = optional(string)<br/>    batch_cutoff       = number<br/>    batch_size         = number<br/>    visibility_timeout = optional(number, 600)<br/>  })</pre> | <pre>{<br/>  "batch_cutoff": 1,<br/>  "batch_size": 1,<br/>  "queue_id": null,<br/>  "service_account_id": null<br/>}</pre> | no |
+| <a name="input_metadata_options"></a> [metadata\_options](#input\_metadata\_options) | Optional access modes for AWS and GCE metadata endpoints. Values: 0 (default), 1 (enabled), or 2 (disabled). | <pre>object({<br/>    aws_v1_http_endpoint = optional(number, 0)<br/>    gce_http_endpoint    = optional(number, 0)<br/>  })</pre> | `null` | no |
 | <a name="input_min_level"></a> [min\_level](#input\_min\_level) | Minimal level of logging for cloud function yc-function-example. | `string` | `"ERROR"` | no |
 | <a name="input_mount_bucket"></a> [mount\_bucket](#input\_mount\_bucket) | Mount bucket (true) or not (false). If `true` section `storage_mounts{}` should be defined. | `bool` | `false` | no |
+| <a name="input_mounts"></a> [mounts](#input\_mounts) | Modern function mounts. Each mount must define exactly one of ephemeral\_disk or object\_storage. Cannot be used with mount\_bucket/storage\_mounts. | <pre>list(object({<br/>    name = string<br/>    mode = optional(string, "ro")<br/>    ephemeral_disk = optional(object({<br/>      size_gb       = number<br/>      block_size_kb = optional(number)<br/>    }))<br/>    object_storage = optional(object({<br/>      bucket = string<br/>      prefix = optional(string)<br/>    }))<br/>  }))</pre> | `null` | no |
 | <a name="input_network_id"></a> [network\_id](#input\_network\_id) | Cloud function's network id for VPC integration. | `string` | `null` | no |
 | <a name="input_object_storage"></a> [object\_storage](#input\_object\_storage) | Trigger type of object storage. | <pre>object({<br/>    bucket_id    = string<br/>    prefix       = optional(string)<br/>    suffix       = optional(string)<br/>    create       = optional(bool, true)<br/>    update       = optional(bool, true)<br/>    delete       = optional(bool, true)<br/>    batch_cutoff = number<br/>    batch_size   = number<br/>  })</pre> | <pre>{<br/>  "batch_cutoff": 1,<br/>  "batch_size": 1,<br/>  "bucket_id": null<br/>}</pre> | no |
 | <a name="input_public_access"></a> [public\_access](#input\_public\_access) | Making cloud function public (true) or not (false). | `bool` | `false` | no |
@@ -318,6 +326,7 @@ No modules.
 | <a name="input_storage_mounts"></a> [storage\_mounts](#input\_storage\_mounts) | Mounting s3 bucket. | <pre>object({<br/>    mount_point_name = string<br/>    bucket           = string<br/>    prefix           = optional(string)<br/>    read_only        = optional(bool, true)<br/>  })</pre> | <pre>{<br/>  "bucket": null,<br/>  "mount_point_name": "yc-function"<br/>}</pre> | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | List of tags for cloud function yc-function-example. | `list(string)` | <pre>[<br/>  "yc_tag"<br/>]</pre> | no |
 | <a name="input_timer"></a> [timer](#input\_timer) | Trigger type of timer. | <pre>object({<br/>    cron_expression = optional(string, "*/30 * ? * * *")<br/>    payload         = optional(string)<br/>  })</pre> | <pre>{<br/>  "cron_expression": "*/5 * ? * * *",<br/>  "payload": null<br/>}</pre> | no |
+| <a name="input_tmpfs_size"></a> [tmpfs\_size](#input\_tmpfs\_size) | Tmpfs size in megabytes. Must be at least 1024 MiB when set. Null leaves tmpfs disabled. | `number` | `null` | no |
 | <a name="input_use_async_invocation"></a> [use\_async\_invocation](#input\_use\_async\_invocation) | Use asynchronous invocation to message queue (true) or not (false). If `true`, parameters `ymq_success_target` and `ymq_failure_target` must be set. | `bool` | `false` | no |
 | <a name="input_use_existing_log_group"></a> [use\_existing\_log\_group](#input\_use\_existing\_log\_group) | Use existing logging group (true) or not (false).<br/>    If `true` parameters `existing_log_group_id` must be set. | `bool` | `false` | no |
 | <a name="input_use_existing_sa"></a> [use\_existing\_sa](#input\_use\_existing\_sa) | Use existing service accounts (true) or not (false).<br/>    If `true` parameters `existing_service_account_id` must be set. | `bool` | `false` | no |
