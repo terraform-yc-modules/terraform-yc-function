@@ -15,7 +15,7 @@ variable "tags" {
 variable "user_hash" {
   description = <<EOF
     User-defined string for current function version.
-    User must change this string any times when function changed. 
+    User must change this string any times when function changed.
     Function will be updated when hash is changed."
   EOF
   default     = "yc-defined-string-for-tf-module"
@@ -205,6 +205,17 @@ variable "lockbox_secret_key" {
 variable "lockbox_secret_value" {
   description = "Lockbox secret value for cloud function yc-function-example."
   type        = string
+}
+
+variable "existing_secrets" {
+  description = "list of existing Lockbox secrets values for cloud function."
+  type = list(object({
+    id                   = string
+    key                  = string
+    version_id           = string
+    environment_variable = string
+  }))
+  default = []
 }
 
 variable "environment_variable" {
